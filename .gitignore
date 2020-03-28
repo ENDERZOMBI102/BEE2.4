@@ -71,6 +71,9 @@ reports/
 # Localisation files:
 *.mo
 
+# Testing:
+.hypothesis/
+.pytest_cache/
 
 # PyInstaller temporary file directory
 /build_tmp/
