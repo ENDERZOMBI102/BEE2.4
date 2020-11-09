@@ -22,8 +22,8 @@ cached_img = {}  # type: Dict[Tuple[str, int, int], ImageTk.PhotoImage]
 cached_squares = {}  # type: Dict[Union[Tuple[float, float, float, int], Tuple[str, int]], ImageTk.PhotoImage]
 
 filesystem = FileSystemChain(
-    # Highest priority is the in-built UI images.
-    RawFileSystem(str(utils.install_path('images'))),
+	# Highest priority is the in-built UI images.
+	RawFileSystem(str(utils.install_path('images'))),
 )
 
 # Silence DEBUG messages from Pillow, they don't help.
@@ -31,201 +31,224 @@ logging.getLogger('PIL').setLevel(logging.INFO)
 
 
 def load_filesystems(systems: Iterable[FileSystem]):
-    """Load in the filesystems used in packages."""
-    for sys in systems:
-        filesystem.add_sys(sys, 'resources/BEE2/')
+	"""Load in the filesystems used in packages."""
+	for sys in systems:
+		filesystem.add_sys(sys, 'resources/BEE2/')
 
 
 def tuple_size(size: Union[Tuple[int, int], int]) -> Tuple[int, int]:
-    """Return an xy tuple given a size or tuple."""
-    if isinstance(size, tuple):
-        return size
-    return size, size
+	"""Return an xy tuple given a size or tuple."""
+	if isinstance(size, tuple):
+		return size
+	return size, size
 
 
 def color_hex(color: Vec) -> str:
-    """Convert a RGB colour to #xxxxxx."""
-    r, g, b = color
-    return '#{:2X}{:2X}{:2X}'.format(int(r), int(g), int(b))
+	"""Convert a RGB colour to #xxxxxx."""
+	r, g, b = color
+	return '#{:2X}{:2X}{:2X}'.format(int(r), int(g), int(b))
 
 
-def png(path: str, resize_to=0, error=None, algo=Image.NEAREST):
-    """Loads in an image for use in TKinter.
+def png(path: str, resize_to=0, error=None, algo=Image.NEAREST, wxImg = False):
+	"""Loads in an image for use in TKinter.
 
-    - The .png suffix will automatically be added.
-    - Images will be loaded from both the inbuilt files and the extracted
-    zip cache.
-    - If resize_to is set, the image will be resized to that size using the algo
-    algorithm.
-    - This caches images, so it won't be deleted (Tk doesn't keep a reference
-      to the Python object), and subsequent calls don't touch the hard disk.
-    """
-    path = path.casefold().replace('\\', '/')
-    if path[-4:-3] != '.':
-        path += ".png"
+	- The .png suffix will automatically be added.
+	- Images will be loaded from both the inbuilt files and the extracted
+	zip cache.
+	- If resize_to is set, the image will be resized to that size using the algo
+	algorithm.
+	- This caches images, so it won't be deleted (Tk doesn't keep a reference
+	  to the Python object), and subsequent calls don't touch the hard disk.
+	"""
+	path = path.casefold().replace('\\', '/')
+	if path[-4:-3] != '.':
+		path += ".png"
 
-    orig_path = path
+	orig_path = path
 
-    resize_width, resize_height = resize_to = tuple_size(resize_to)
+	resize_width, resize_height = resize_to = tuple_size(resize_to)
 
-    try:
-        return cached_img[path, resize_width, resize_height]
-    except KeyError:
-        pass
+	try:
+		return cached_img[path, resize_width, resize_height]
+	except KeyError:
+		pass
 
-    with filesystem:
-        try:
-            img_file = filesystem[path]
-        except (KeyError, FileNotFoundError):
-            LOGGER.warning('ERROR: "images/{}" does not exist!', orig_path)
-            return error or img_error
-        with img_file.open_bin() as file:
-            image = Image.open(file)  # type: Image.Image
-            image.load()
+	with filesystem:
+		try:
+			img_file = filesystem[path]
+		except (KeyError, FileNotFoundError):
+			LOGGER.warning('ERROR: "images/{}" does not exist!', orig_path)
+			return error or img_error
+		with img_file.open_bin() as file:
+			image = Image.open(file)  # type: Image.Image
+			image.load()
 
-    if resize_to != (0, 0) and resize_to != image.size:
-        image = image.resize(resize_to, algo)
-        # image.save(img_file._data.sys._resolve_path(img_file._data.path))
+	if resize_to != (0, 0) and resize_to != image.size:
+		image = image.resize(resize_to, algo)
+		# image.save(img_file._data.sys._resolve_path(img_file._data.path))
 
-    tk_img = ImageTk.PhotoImage(image=image)
+	if wxImg:
+		import wx
+		wx_img = wx.Image( image.width, image.height, image.convert('RGB').tobytes() )
+		if image.mode[ -1 ] == 'A':
+			alpha = image.getchannel( "A" ).tobytes()
+			wx_img.InitAlpha()
+			for i in range( wx_img.GetWidth() ):
+				for j in range( wx_img.GetHeight() ):
+					wx_img.SetAlpha( i, j, alpha[ i + j * image.width ] )
+		return wx_img
 
-    cached_img[orig_path, resize_width, resize_height] = tk_img
-    return tk_img
+	tk_img = ImageTk.PhotoImage(image=image)
+
+	cached_img[orig_path, resize_width, resize_height] = tk_img
+	return tk_img
 
 
 def spr(name, error=None):
-    """Load in the property icons with the correct size."""
-    # We're doubling the icon size, so use nearest-neighbour to keep
-    # image sharpness
-    return png('icons/'+name, error=error, resize_to=32, algo=Image.NEAREST)
+	"""Load in the property icons with the correct size."""
+	# We're doubling the icon size, so use nearest-neighbour to keep
+	# image sharpness
+	return png('icons/'+name, error=error, resize_to=32, algo=Image.NEAREST)
 
 
 def icon(name, error=None):
-    """Load in a palette icon, using the correct directory and size."""
-    return png('items/' + name, error=error, resize_to=64)
+	"""Load in a palette icon, using the correct directory and size."""
+	return png('items/' + name, error=error, resize_to=64)
 
 
 def get_app_icon(path: str):
-    """On non-Windows, retrieve the application icon."""
-    with open(path, 'rb') as f:
-        return ImageTk.PhotoImage(Image.open(f))
+	"""On non-Windows, retrieve the application icon."""
+	with open(path, 'rb') as f:
+		return ImageTk.PhotoImage(Image.open(f))
 
 
 def make_splash_screen(
-    max_width: float,
-    max_height: float,
-    base_height: int,
-    text1_bbox: Tuple[int, int, int, int],
-    text2_bbox: Tuple[int, int, int, int],
+		max_width: float,
+		max_height: float,
+		base_height: int,
+		text1_bbox: Tuple[int, int, int, int],
+		text2_bbox: Tuple[int, int, int, int],
+		wxImg: bool = False
 ):
-    """Create the splash screen image.
+	"""Create the splash screen image.
 
-    This uses a random screenshot from the splash_screens directory.
-    It then adds the gradients on top.
-    """
-    import random
-    folder = str(utils.install_path('images/splash_screen'))
-    path = '<nothing>'
-    try:
-        path = random.choice(os.listdir(folder))
-        with open(os.path.join(folder, path), 'rb') as img_file:
-            image = Image.open(img_file)
-            image.load()
-    except (FileNotFoundError, IndexError, IOError):
-        # Not found, substitute a gray block.
-        LOGGER.warning('No splash screen found (tried "{}")', path)
-        image = Image.new(
-            mode='RGB',
-            size=(round(max_width), round(max_height)),
-            color=(128, 128, 128),
-        )
-    else:
-        if image.height > max_height:
-            image = image.resize((
-                round(image.width / image.height * max_height),
-                round(max_height),
-            ))
-        if image.width > max_width:
-            image = image.resize((
-                round(max_width),
-                round(image.height / image.width * max_width),
-            ))
+	This uses a random screenshot from the splash_screens directory.
+	It then adds the gradients on top.
+	"""
+	import random
+	folder = str(utils.install_path('images/splash_screen'))
+	path = '<nothing>'
+	try:
+		path = random.choice(os.listdir(folder))
+		with open(os.path.join(folder, path), 'rb') as img_file:
+			image = Image.open(img_file)
+			image.load()
+	except (FileNotFoundError, IndexError, IOError):
+		# Not found, substitute a gray block.
+		LOGGER.warning('No splash screen found (tried "{}")', path)
+		image = Image.new(
+			mode='RGB',
+			size=(round(max_width), round(max_height)),
+			color=(128, 128, 128),
+		)
+	else:
+		if image.height > max_height:
+			image = image.resize((
+				round(image.width / image.height * max_height),
+				round(max_height),
+			))
+		if image.width > max_width:
+			image = image.resize((
+				round(max_width),
+				round(image.height / image.width * max_width),
+			))
 
-    draw = ImageDraw.Draw(image, 'RGBA')
+	draw = ImageDraw.Draw(image, 'RGBA')
 
-    rect_top = image.height - base_height - 40
-    draw.rectangle(
-        (
-            0,
-            rect_top + 40,
-            image.width,
-            image.height,
-         ),
-        fill=(0, 150, 120, 64),
-    )
-    # Add a gradient above the rectangle..
-    for y in range(40):
-        draw.rectangle(
-            (
-                0,
-                rect_top + y,
-                image.width,
-                image.height,
-            ),
-            fill=(0, 150, 120, int(y * 128/40)),
-        )
+	rect_top = image.height - base_height - 40
+	draw.rectangle(
+		(
+			0,
+			rect_top + 40,
+			image.width,
+			image.height,
+		),
+		fill=(0, 150, 120, 64),
+	)
+	# Add a gradient above the rectangle..
+	for y in range(40):
+		draw.rectangle(
+			(
+				0,
+				rect_top + y,
+				image.width,
+				image.height,
+			),
+			fill=(0, 150, 120, int(y * 128/40)),
+		)
 
-    # Draw the shadows behind the text.
-    # This is done by progressively drawing smaller rectangles
-    # with a low alpha. The center is overdrawn more making it thicker.
-    for x1, y1, x2, y2 in [text1_bbox, text2_bbox]:
-        for border in reversed(range(5)):
-            draw.rectangle(
-                (
-                    x1 - border,
-                    y1 - border,
-                    x2 + border,
-                    y2 + border,
-                ),
-                fill=(0, 150, 120, 20),
-            )
+	# Draw the shadows behind the text.
+	# This is done by progressively drawing smaller rectangles
+	# with a low alpha. The center is overdrawn more making it thicker.
+	for x1, y1, x2, y2 in [text1_bbox, text2_bbox]:
+		for border in reversed(range(5)):
+			draw.rectangle(
+				(
+					x1 - border,
+					y1 - border,
+					x2 + border,
+					y2 + border,
+				),
+				fill=(0, 150, 120, 20),
+			)
 
-    tk_img = ImageTk.PhotoImage(image=image)
-    return tk_img, image.width, image.height
+	if wxImg:
+		import wx
+		wx_img = wx.Image( image.width, image.height, image.convert('RGB').tobytes() )
+		if image.mode[ -1 ] == 'A':
+			alpha = image.getchannel( "A" ).tobytes()
+			wx_img.InitAlpha()
+			for i in range( wx_img.GetWidth() ):
+				for j in range( wx_img.GetHeight() ):
+					wx_img.SetAlpha( i, j, alpha[ i + j * image.width ] )
+		return wx_img
+
+	tk_img = ImageTk.PhotoImage(image=image)
+	return tk_img, image.width, image.height
 
 
 def color_square(color: Vec, size=16):
-    """Create a square image of the given size, with the given color."""
-    key = color.x, color.y, color.z, size
+	"""Create a square image of the given size, with the given color."""
+	key = color.x, color.y, color.z, size
 
-    try:
-        return cached_squares[key]
-    except KeyError:
-        img = Image.new(
-            mode='RGB',
-            size=tuple_size(size),
-            color=(int(color.x), int(color.y), int(color.z)),
-        )
-        tk_img = ImageTk.PhotoImage(image=img)
-        cached_squares[key] = tk_img
-        return tk_img
+	try:
+		return cached_squares[key]
+	except KeyError:
+		img = Image.new(
+			mode='RGB',
+			size=tuple_size(size),
+			color=(int(color.x), int(color.y), int(color.z)),
+		)
+		tk_img = ImageTk.PhotoImage(image=img)
+		cached_squares[key] = tk_img
+		return tk_img
 
 
 def invis_square(size):
-    """Create a square image of the given size, filled with 0-alpha pixels."""
+	"""Create a square image of the given size, filled with 0-alpha pixels."""
 
-    try:
-        return cached_squares['alpha', size]
-    except KeyError:
-        img = Image.new(
-            mode='RGBA',
-            size=tuple_size(size),
-            color=(0, 0, 0, 0),
-        )
-        tk_img = ImageTk.PhotoImage(image=img)
-        cached_squares['alpha', size] = tk_img
+	try:
+		return cached_squares['alpha', size]
+	except KeyError:
+		img = Image.new(
+			mode='RGBA',
+			size=tuple_size(size),
+			color=(0, 0, 0, 0),
+		)
+		tk_img = ImageTk.PhotoImage(image=img)
+		cached_squares['alpha', size] = tk_img
 
-        return tk_img
+		return tk_img
 
 # Colour of the palette item background
 PETI_ITEM_BG = Vec(229, 232, 233)
