@@ -4,7 +4,7 @@ from typing import Tuple, Union, List, Dict
 import wx
 
 
-class Canvas(wx.Panel):
+class Canvas(wx.Window):
 	"""
 		a small wrapper around the wx.ClientDC class, to draw on a window
 		possible arguments:
@@ -15,19 +15,31 @@ class Canvas(wx.Panel):
 	_LayerCount: int
 	_layers: Dict[int, List['CanvasItem'] ] = {}
 
-	def __init__(self, parent: wx.Window):
-		super(Canvas, self).__init__( parent=parent, size=parent.GetSize() )
+	def __init__(self, **kwargs):
+		if 'parent' not in kwargs:
+			raise TypeError('Missing required keyword argument "parent"')
+		super(Canvas, self).__init__( size=kwargs.get('parent').GetSize(), **kwargs )
 		self.Bind(wx.EVT_PAINT, self._OnPaint, self)
 
 	def AppendItem( self, layer: int, item: 'CanvasItem' ):
+		"""
+		Adds an item to the drawing list
+		:param layer: the layer this item will be drawed to
+		:param item: the item to append
+		"""
 		if layer not in self._layers.keys():
 			self._layers[ layer ] = []
 		self._layers[ layer ].append( item )
 
 	def CreateImage( self, image: wx.Image, pos: Union[wx.Point, wx.Point2D], layer: int = 0 ) -> 'CanvasImage':
-		dc = wx.ClientDC( self )
-		dc.DrawBitmap( image.ConvertToBitmap(), wx.Point( pos.Get() ) )
-		return CanvasImage(self, image, pos, layer)
+		"""
+		Creates an image on the canvas
+
+		:ret-type: layer: int
+		"""
+		# dc = wx.ClientDC( self )
+		# dc.DrawBitmap( image.ConvertToBitmap(), wx.Point( pos.Get() ) )
+		return CanvasImage(self, image, wx.Point( pos.Get() ), layer)
 
 	def CreateText(
 			self,
@@ -43,11 +55,11 @@ class Canvas(wx.Panel):
 			color = _CheckColor(color)
 		if font is None:
 			font = wx.Font( wx.FontInfo().Family(wx.FONTFAMILY_DEFAULT) )
-		dc = wx.ClientDC( self )
-		dc.SetTextForeground(color)
-		dc.SetFont(font)
-		dc.DrawText( text, wx.Point( pos.Get() ) )
-		return CanvasText( self, text, font, color, pos, layer )
+		# dc = wx.ClientDC( self )
+		# dc.SetTextForeground(color)
+		# dc.SetFont(font)
+		# dc.DrawText( text, wx.Point( pos.Get() ) )
+		return CanvasText( self, text, font, color, wx.Point( pos.Get() ), layer )
 
 	def CreateRectangle(
 			self,
@@ -60,12 +72,12 @@ class Canvas(wx.Panel):
 			layer: int = 0
 	):
 		fillColor, lineColor = _CheckColor(fillColor), _CheckColor(lineColor)
-		dc = wx.ClientDC( self )
-		if lineColor is not None:
-			dc.SetPen( wx.Pen(lineColor) )
-		dc.SetBrush( wx.Brush(fillColor) )
-		dc.DrawRectangle( wx.Rect( wx.Point( pos.Get() ), wx.Size(width, height) ) )
-		return CanvasRectangle(self, pos, width, height, fillColor, lineColor, layer)
+		# dc = wx.ClientDC( self )
+		# if lineColor is not None:
+		# 	dc.SetPen( wx.Pen(lineColor) )
+		# dc.SetBrush( wx.Brush(fillColor) )
+		# dc.DrawRectangle( wx.Rect( wx.Point( pos.Get() ), wx.Size(width, height) ) )
+		return CanvasRectangle(self, wx.Point( pos.Get() ), width, height, fillColor, lineColor, layer)
 
 	def CreateGradient(
 			self,
@@ -78,9 +90,18 @@ class Canvas(wx.Panel):
 			layer: int = 0
 	) -> 'CanvasGradient':
 		color, color2 = _CheckColor( color ), _CheckColor( color2 )
-		dc = wx.ClientDC(self)
-		dc.GradientFillLinear( wx.Rect(pos.Get()[0], pos.Get()[1], width, height), color, color2, direction )
-		return CanvasGradient(self, pos, width, height, color, direction, color2, layer)
+		# dc = wx.ClientDC(self)
+		# dc.GradientFillLinear( wx.Rect(pos.Get()[0], pos.Get()[1], width, height), color, color2, direction )
+		return CanvasGradient(
+			self,
+			wx.Point( pos.Get() ),
+			width,
+			height,
+			color,
+			direction,
+			color2,
+			layer
+		)
 
 	def CreateLine(
 			self,
@@ -90,36 +111,39 @@ class Canvas(wx.Panel):
 			width: int = 1,
 			layer: int = 0
 	) -> 'CanvasLine':
-		pos0, pos1 = wx.Point(pos0.Get()), wx.Point(pos1.Get())
-		dc = wx.ClientDC( self )
-		if color is None:
-			dc.SetPen( wx.Pen( color ) )
-		pen = dc.GetPen()
-		pen.SetWidth( width )
-		dc.SetPen( pen )
-		dc.DrawLine( pos0, pos1 )
+		pos0, pos1 = wx.Point( pos0.Get() ), wx.Point( pos1.Get() )
+		# dc = wx.ClientDC( self )
+		# if color is None:
+		# 	dc.SetPen( wx.Pen( color ) )
+		# pen = dc.GetPen()
+		# pen.SetWidth( width )
+		# dc.SetPen( pen )
+		# dc.DrawLine( pos0, pos1 )
 		return CanvasLine( self, pos0, pos1, color, width, layer)
 
 	def CreatePoint( self, pos: Union[wx.Point, wx.Point2D], pen: wx.Pen = None, layer: int = 0):
-		dc = wx.ClientDC( self )
-		if pen is not None:
-			dc.SetPen( pen )
-		dc.DrawPoint( pos.Get() )
-		return CanvasPoint(self, pos, pen, layer)
+		# dc = wx.ClientDC( self )
+		# if pen is not None:
+		# 	dc.SetPen( pen )
+		# dc.DrawPoint( pos.Get() )
+		return CanvasPoint(self, wx.Point( pos.Get() ), pen, layer)
 
 	def _OnPaint( self, evt: wx.PaintEvent ):
-		for layer in range( len( self._layers ) ):
-			for obj in self._layers[layer]:
-				obj.Draw()
+		if evt.GetEventObject().GetTopLevelParent() is self.GetTopLevelParent():
+			dc = wx.PaintDC( self )
+			for layer in range( len( self._layers ) ):
+				for obj in self._layers[layer]:
+					obj.Draw(dc)
+			dc.Destroy()
 
 
 class CanvasItem(metaclass=ABCMeta):
 
 	_parent: Canvas
 	_bbox: 'BBox'
-	_pos: Union[wx.Point, wx.Point2D]
+	_pos: wx.Point
 
-	def __init__(self, parent: Canvas, pos: Union[wx.Point, wx.Point2D], layer: int = 0):
+	def __init__(self, parent: Canvas, pos: wx.Point, layer: int = 0):
 		self._parent = parent
 		self._pos = pos
 		parent.AppendItem(layer, self)
@@ -129,14 +153,14 @@ class CanvasItem(metaclass=ABCMeta):
 		return self._bbox
 
 	@abstractmethod
-	def Draw( self ):
+	def Draw( self, dc: wx.PaintDC ):
 		pass
 
 	@abstractmethod
 	def _UpdateBBox( self ):
 		pass
 
-	def GetParent( self ) -> wx.Window:
+	def GetParent( self ) -> Canvas:
 		return self._parent
 
 
@@ -153,8 +177,7 @@ class CanvasLine(CanvasItem):
 		self._color = color
 		self._width = width
 
-	def Draw( self ):
-		dc = wx.PaintDC( self._parent )
+	def Draw( self, dc: wx.PaintDC ):
 		if self._color is None:
 			dc.SetPen( wx.Pen( self._color ) )
 		pen = dc.GetPen()
@@ -176,11 +199,11 @@ class CanvasRectangle(CanvasItem):
 	_fillColor: wx.Colour
 	_lineColor: wx.Colour
 	
-	def __init__( self, parent: Canvas, pos: wx.Point2D, width: int, height: int, fillColor: wx.Colour, lineColor: wx.Colour, layer: int = 0 ):
+	def __init__( self, parent: Canvas, pos: wx.Point, width: int, height: int, fillColor: wx.Colour, lineColor: wx.Colour, layer: int = 0 ):
 		super(CanvasRectangle, self).__init__(parent, pos, layer)
 		self._fillColor = fillColor
 		self._lineColor = lineColor
-		self._rect = wx.Rect(wx.Point( pos.Get() ), wx.Size(width, height) )
+		self._rect = wx.Rect(pos, wx.Size(width, height) )
 		self._UpdateBBox()
 
 	def SetWidth( self, width: int ):
@@ -192,7 +215,7 @@ class CanvasRectangle(CanvasItem):
 		self._UpdateBBox()
 
 	def SetColor( self, color: Union[str, wx.Colour] ):
-		self._color = _CheckColor(color)
+		self._fillColor = _CheckColor(color)
 
 	def GetBoundingBox( self ) -> 'RectBBox':
 		return self._bbox
@@ -210,8 +233,7 @@ class CanvasRectangle(CanvasItem):
 			centerRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
 
-	def Draw( self ):
-		dc = wx.PaintDC(self._parent)
+	def Draw( self, dc: wx.PaintDC ):
 		if self._lineColor is not None:
 			dc.SetPen( wx.Pen( self._lineColor ) )
 		dc.SetBrush( wx.Brush( self._fillColor ) )
@@ -225,7 +247,7 @@ class CanvasText(CanvasItem):
 	_color: wx.Colour
 	_text: str
 
-	def __init__(self, parent: Canvas, text: str, font: wx.Font, color: wx.Colour, pos: wx.Point2D, layer: int = 0 ):
+	def __init__(self, parent: Canvas, text: str, font: wx.Font, color: wx.Colour, pos: wx.Point, layer: int = 0 ):
 		super(CanvasText, self).__init__(parent, pos, layer)
 		self._text = text
 		self._font = font
@@ -237,7 +259,6 @@ class CanvasText(CanvasItem):
 		dc.SetFont(self._font)
 		width, height = dc.GetTextExtent(self._text)
 		x, y = self._pos.Get()
-		print(x, y)
 		self._bbox = RectBBox.FromPoints(
 			topLeft=self._pos,
 			topRight=wx.Point2D( x + width, y ),
@@ -247,9 +268,6 @@ class CanvasText(CanvasItem):
 			centerBottom=wx.Point2D( x + (width / 2), y + height ),
 			centerLeft=wx.Point2D( x, y + (height / 2) ),
 			centerRight=wx.Point2D( x + width, y + (height / 2) )
-		)
-		print(
-			[ i.Get() for i in self._bbox.GetVerticies() ]
 		)
 
 	def SetText( self, text: str ):
@@ -262,11 +280,10 @@ class CanvasText(CanvasItem):
 	def GetBoundingBox( self ) -> 'RectBBox':
 		return self._bbox
 
-	def Draw( self ):
-		dc = wx.PaintDC( self._parent )
+	def Draw( self, dc: wx.PaintDC ):
 		dc.SetTextForeground(self._color)
 		dc.SetFont( self._font )
-		dc.DrawText( self._text, wx.Point( self._pos.Get() ) )
+		dc.DrawText( self._text, self._pos )
 
 
 class CanvasGradient( CanvasItem ):
@@ -322,8 +339,7 @@ class CanvasGradient( CanvasItem ):
 			centerRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
 
-	def Draw( self ):
-		dc = wx.PaintDC( self._parent )
+	def Draw( self, dc: wx.PaintDC ):
 		dc.GradientFillLinear(self._rect, self._color, self._color2, self._direction)
 
 
@@ -335,8 +351,7 @@ class CanvasPoint(CanvasItem):
 		super().__init__( parent, pos, layer )
 		self._pen = pen
 
-	def Draw( self ):
-		dc = wx.PaintDC( self._parent )
+	def Draw( self, dc: wx.PaintDC ):
 		if self._pen is not None:
 			dc.SetPen( self._pen )
 		dc.DrawPoint( self._pos.Get() )
@@ -381,8 +396,7 @@ class CanvasImage(CanvasItem):
 	def GetImage( self ) -> wx.Image:
 		return self._image
 
-	def Draw( self ):
-		dc = wx.PaintDC( self._parent )
+	def Draw( self, dc: wx.PaintDC ):
 		dc.DrawBitmap( self._image.ConvertToBitmap(), wx.Point( self._pos.Get() ) )
 
 
