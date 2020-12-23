@@ -55,26 +55,29 @@ class SplashScreenSmall(wx.Frame):
 		self.splashScreen = ss
 		self.canvas = Canvas( parent=self )
 
+		self.canvas.SetBackgroundColour( wx.Colour( '#009678' ) )
+		buttonColor: wx.Colour = wx.Colour( '#00785A' )
+
 		# close button
 		self.close_btn = self.canvas.CreateRectangle(
 			pos=wx.Point2D( self.GetSize()[ 0 ] - 20, 0 ),
 			width=20,
 			height=20,
-			fillColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			lineColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			layer=1
+			fillColor=buttonColor,
+			lineColor=buttonColor,
+			layer=0
 		)
 		self.canvas.CreateLine(
 			wx.Point( self.GetSize()[ 0 ] - 16, 4 ),
 			wx.Point( self.GetSize()[ 0 ] - 4, 16 ),
 			width=2,
-			layer=1
+			layer=0
 		)
 		self.canvas.CreateLine(
 			wx.Point( self.GetSize()[ 0 ] - 4, 4 ),
 			wx.Point( self.GetSize()[ 0 ] - 16, 16 ),
 			width=2,
-			layer=1
+			layer=0
 		)
 
 		# resize button
@@ -82,28 +85,29 @@ class SplashScreenSmall(wx.Frame):
 			pos=wx.Point2D( self.GetSize()[ 0 ] - 40, 0 ),
 			width=20,
 			height=20,
-			fillColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			lineColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			layer=1
+			fillColor=buttonColor,
+			lineColor=buttonColor,
+			layer=0
 		)
 		self.canvas.CreateLine(
 			wx.Point( self.GetSize()[ 0 ] - 20 - 4, 4 ),
 			wx.Point( self.GetSize()[ 0 ] - 20 - 16, 4 ),
 			width=2,
-			layer=1
+			layer=0
 		)
 		self.canvas.CreateLine(
 			wx.Point( self.GetSize()[ 0 ] - 20 - 4, 4 ),
 			wx.Point( self.GetSize()[ 0 ] - 20 - 4, 16 ),
 			width=2,
-			layer=1
+			layer=0
 		)
 		self.canvas.CreateLine(
 			wx.Point( self.GetSize()[ 0 ] - 24, 4 ),
 			wx.Point( self.GetSize()[ 0 ] - 36, 16 ),
 			width=2,
-			layer=1
+			layer=0
 		)
+		
 
 		# bind events
 		self.canvas.Bind( wx.EVT_LEFT_DOWN, self.OnMouseClick )
@@ -160,16 +164,17 @@ class SplashScreenLarge(wx.Frame):
 		self.CenterOnScreen()
 
 		self.splashScreen = ss
-		# <app.canvas.Canvas object at 0x0000020ECC4938B8>
+
 		self.canvas = Canvas( parent=self )
+		buttonColor: wx.Colour = wx.Colour( '#00785A' )
 
 		# close button
 		self.close_btn = self.canvas.CreateRectangle(
 			pos=wx.Point2D( self.GetSize()[ 0 ] - 20, 0 ),
 			width=20,
 			height=20,
-			fillColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			lineColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
+			fillColor=buttonColor,
+			lineColor=buttonColor,
 			layer=1
 		)
 		self.canvas.CreateLine(
@@ -190,8 +195,8 @@ class SplashScreenLarge(wx.Frame):
 			pos=wx.Point2D( self.GetSize()[ 0 ] - 40, 0 ),
 			width=20,
 			height=20,
-			fillColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
-			lineColor=wx.ColourDatabase().Find( 'DARK GREEN' ),
+			fillColor=buttonColor,
+			lineColor=buttonColor,
 			layer=1
 		)
 		self.canvas.CreateLine(
