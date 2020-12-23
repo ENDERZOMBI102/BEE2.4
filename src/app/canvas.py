@@ -4,7 +4,7 @@ from typing import Tuple, Union, List, Dict
 import wx
 
 
-class Canvas(wx.Window):
+class Canvas(wx.Panel):
 	"""
 		a small wrapper around the wx.ClientDC class, to draw on a window
 		possible arguments:
@@ -13,23 +13,26 @@ class Canvas(wx.Window):
 		this class inherits all wx.Panel arguments
 	"""
 	_LayerCount: int
-	_layers: Dict[int, List['CanvasItem'] ] = {}
+	_layers: Dict[int, List['CanvasItem'] ]
 
 	def __init__(self, **kwargs):
 		if 'parent' not in kwargs:
 			raise TypeError('Missing required keyword argument "parent"')
 		super(Canvas, self).__init__( size=kwargs.get('parent').GetSize(), **kwargs )
+		self._LayerCount = 0
+		self._layers = {}
 		self.Bind(wx.EVT_PAINT, self._OnPaint, self)
 
 	def AppendItem( self, layer: int, item: 'CanvasItem' ):
 		"""
 		Adds an item to the drawing list
-		:param layer: the layer this item will be drawed to
+		:param layer: the layer this item will be drawn to
 		:param item: the item to append
 		"""
 		if layer not in self._layers.keys():
 			self._layers[ layer ] = []
 		self._layers[ layer ].append( item )
+		self._LayerCount = len(self._layers)
 
 	def CreateImage( self, image: wx.Image, pos: Union[wx.Point, wx.Point2D], layer: int = 0 ) -> 'CanvasImage':
 		"""
@@ -129,12 +132,13 @@ class Canvas(wx.Window):
 		return CanvasPoint(self, wx.Point( pos.Get() ), pen, layer)
 
 	def _OnPaint( self, evt: wx.PaintEvent ):
-		if evt.GetEventObject().GetTopLevelParent() is self.GetTopLevelParent():
-			dc = wx.PaintDC( self )
-			for layer in range( len( self._layers ) ):
+		dc = wx.PaintDC( self )
+		for layer in range( len( self._layers ) ):
+			# range gives 0 too, we might not have a layer 0
+			if layer in self._layers.keys():
 				for obj in self._layers[layer]:
 					obj.Draw(dc)
-			dc.Destroy()
+		dc.Destroy()
 
 
 class CanvasItem(metaclass=ABCMeta):
