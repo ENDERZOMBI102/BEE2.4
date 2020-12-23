@@ -212,6 +212,7 @@ class CanvasRectangle(CanvasItem):
 			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
 			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
+		self._bbox.SetOwner( self )
 
 	def Draw( self, dc: wx.PaintDC ):
 		if self._lineColor is not None:
@@ -249,6 +250,7 @@ class CanvasText(CanvasItem):
 			centerLeft=wx.Point( x, y + (height / 2) ),
 			centerRight=wx.Point( x + width, y + (height / 2) )
 		)
+		self._bbox.SetOwner( self )
 
 	def SetText( self, text: str ):
 		self._text = text
@@ -277,7 +279,7 @@ class CanvasGradient( CanvasItem ):
 	def __init__(
 			self,
 			parent: Canvas,
-			pos: Union[wx.Point, wx.Point2D],
+			pos: wx.Point,
 			width: int,
 			height: int,
 			color: wx.Colour,
@@ -318,6 +320,7 @@ class CanvasGradient( CanvasItem ):
 			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
 			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
+		self._bbox.SetOwner( self )
 
 	def Draw( self, dc: wx.PaintDC ):
 		dc.GradientFillLinear(self._rect, self._color, self._color2, self._direction)
@@ -327,7 +330,7 @@ class CanvasPoint(CanvasItem):
 
 	_pen: wx.Pen
 
-	def __init__( self, parent: Canvas, pos: Union[wx.Point, wx.Point2D], pen: wx.Pen = None, layer: int = 0 ):
+	def __init__( self, parent: Canvas, pos: wx.Point, pen: wx.Pen = None, layer: int = 0 ):
 		super().__init__( parent, pos, layer )
 		self._pen = pen
 
@@ -348,7 +351,7 @@ class CanvasImage(CanvasItem):
 	_image: wx.Image
 	_bbox: 'RectBBox'
 
-	def __init__(self, parent: Canvas, img: wx.Image, pos: Union[wx.Point, wx.Point2D], layer: int = 0):
+	def __init__(self, parent: Canvas, img: wx.Image, pos: wx.Point, layer: int = 0):
 		super(CanvasImage, self).__init__(parent, pos, layer)
 		self._image = img
 		self._UpdateBBox()
@@ -368,6 +371,7 @@ class CanvasImage(CanvasItem):
 			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
 			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
+		self._bbox.SetOwner(self)
 
 	def SetImage( self, img: wx.Image ):
 		self._image = img
@@ -386,6 +390,10 @@ class BBox(metaclass=ABCMeta):
 	def IsInside( self, pos: Union[wx.Point, wx.Point2D] ) -> bool:
 		pass
 
+	@abstractmethod
+	def SetOwner( self, owner: CanvasItem ) -> None:
+		pass
+
 
 class RectBBox(BBox):
 
@@ -397,8 +405,9 @@ class RectBBox(BBox):
 	_bottom: wx.Point
 	_right: wx.Point
 	_left: wx.Point
+	_owner: CanvasItem
 
-	def __init__(self, points: Tuple[wx.Point]):
+	def __init__(self, owner: CanvasItem, points: Tuple[wx.Point]):
 		self._topRight = points[ 0 ]
 		self._topLeft = points[ 1 ]
 		self._bottomRight = points[ 2 ]
@@ -407,6 +416,7 @@ class RectBBox(BBox):
 		self._bottom = points[ 5 ]
 		self._right = points[ 6 ]
 		self._left = points[ 7 ]
+		self._owner = owner
 
 	@staticmethod
 	def FromPoints(
@@ -420,10 +430,14 @@ class RectBBox(BBox):
 		centerLeft: wx.Point
 	):
 		return RectBBox(
+			None,
 			tuple(
 				[topRight, topLeft, bottomRight, bottomLeft, centerTop, centerBottom, centerRight, centerLeft]
 			)
 		)
+
+	def SetOwner( self, owner: CanvasItem ) -> None:
+		self._owner = owner
 
 	def GetTopRight( self ):
 		return self._topRight
@@ -450,7 +464,7 @@ class RectBBox(BBox):
 		return self._left
 
 	def GetCenter( self ):
-		return wx.Point2D(self._left.Get()[1], self._top.Get()[0])
+		return wx.Point(self._left.Get()[1], self._top.Get()[0])
 
 	def GetVerticies( self ) -> Tuple[ wx.Point, wx.Point, wx.Point, wx.Point ]:
 		return self._topLeft, self._topRight, self._bottomLeft, self._bottomRight
