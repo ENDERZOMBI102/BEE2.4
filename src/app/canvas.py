@@ -40,8 +40,6 @@ class Canvas(wx.Panel):
 
 		:ret-type: layer: int
 		"""
-		# dc = wx.ClientDC( self )
-		# dc.DrawBitmap( image.ConvertToBitmap(), wx.Point( pos.Get() ) )
 		return CanvasImage(self, image, wx.Point( pos.Get() ), layer)
 
 	def CreateText(
@@ -58,10 +56,6 @@ class Canvas(wx.Panel):
 			color = _CheckColor(color)
 		if font is None:
 			font = wx.Font( wx.FontInfo().Family(wx.FONTFAMILY_DEFAULT) )
-		# dc = wx.ClientDC( self )
-		# dc.SetTextForeground(color)
-		# dc.SetFont(font)
-		# dc.DrawText( text, wx.Point( pos.Get() ) )
 		return CanvasText( self, text, font, color, wx.Point( pos.Get() ), layer )
 
 	def CreateRectangle(
@@ -75,11 +69,6 @@ class Canvas(wx.Panel):
 			layer: int = 0
 	):
 		fillColor, lineColor = _CheckColor(fillColor), _CheckColor(lineColor)
-		# dc = wx.ClientDC( self )
-		# if lineColor is not None:
-		# 	dc.SetPen( wx.Pen(lineColor) )
-		# dc.SetBrush( wx.Brush(fillColor) )
-		# dc.DrawRectangle( wx.Rect( wx.Point( pos.Get() ), wx.Size(width, height) ) )
 		return CanvasRectangle(self, wx.Point( pos.Get() ), width, height, fillColor, lineColor, layer)
 
 	def CreateGradient(
@@ -93,8 +82,6 @@ class Canvas(wx.Panel):
 			layer: int = 0
 	) -> 'CanvasGradient':
 		color, color2 = _CheckColor( color ), _CheckColor( color2 )
-		# dc = wx.ClientDC(self)
-		# dc.GradientFillLinear( wx.Rect(pos.Get()[0], pos.Get()[1], width, height), color, color2, direction )
 		return CanvasGradient(
 			self,
 			wx.Point( pos.Get() ),
@@ -115,20 +102,9 @@ class Canvas(wx.Panel):
 			layer: int = 0
 	) -> 'CanvasLine':
 		pos0, pos1 = wx.Point( pos0.Get() ), wx.Point( pos1.Get() )
-		# dc = wx.ClientDC( self )
-		# if color is None:
-		# 	dc.SetPen( wx.Pen( color ) )
-		# pen = dc.GetPen()
-		# pen.SetWidth( width )
-		# dc.SetPen( pen )
-		# dc.DrawLine( pos0, pos1 )
 		return CanvasLine( self, pos0, pos1, color, width, layer)
 
 	def CreatePoint( self, pos: Union[wx.Point, wx.Point2D], pen: wx.Pen = None, layer: int = 0):
-		# dc = wx.ClientDC( self )
-		# if pen is not None:
-		# 	dc.SetPen( pen )
-		# dc.DrawPoint( pos.Get() )
 		return CanvasPoint(self, wx.Point( pos.Get() ), pen, layer)
 
 	def _OnPaint( self, evt: wx.PaintEvent ):
@@ -228,13 +204,13 @@ class CanvasRectangle(CanvasItem):
 		width, height = self._rect.GetSize()
 		self._bbox = RectBBox.FromPoints(
 			topLeft=self._pos,
-			topRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
-			centerTop=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
-			bottomLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
-			bottomRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
-			centerBottom=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
-			centerLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
-			centerRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
+			topRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
+			centerTop=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
+			bottomLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
+			bottomRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
+			centerBottom=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
+			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
+			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
 
 	def Draw( self, dc: wx.PaintDC ):
@@ -265,13 +241,13 @@ class CanvasText(CanvasItem):
 		x, y = self._pos.Get()
 		self._bbox = RectBBox.FromPoints(
 			topLeft=self._pos,
-			topRight=wx.Point2D( x + width, y ),
-			centerTop=wx.Point2D( x + (width / 2), y ),
-			bottomLeft=wx.Point2D( x, y + height ),
-			bottomRight=wx.Point2D( x + width, y + height ),
-			centerBottom=wx.Point2D( x + (width / 2), y + height ),
-			centerLeft=wx.Point2D( x, y + (height / 2) ),
-			centerRight=wx.Point2D( x + width, y + (height / 2) )
+			topRight=wx.Point( x + width, y ),
+			centerTop=wx.Point( x + (width / 2), y ),
+			bottomLeft=wx.Point( x, y + height ),
+			bottomRight=wx.Point( x + width, y + height ),
+			centerBottom=wx.Point( x + (width / 2), y + height ),
+			centerLeft=wx.Point( x, y + (height / 2) ),
+			centerRight=wx.Point( x + width, y + (height / 2) )
 		)
 
 	def SetText( self, text: str ):
@@ -334,13 +310,13 @@ class CanvasGradient( CanvasItem ):
 		width, height = self._rect.GetSize()
 		self._bbox = RectBBox.FromPoints(
 			topLeft=self._pos,
-			topRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
-			centerTop=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
-			bottomLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
-			bottomRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
-			centerBottom=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
-			centerLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
-			centerRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
+			topRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
+			centerTop=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
+			bottomLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
+			bottomRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
+			centerBottom=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
+			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
+			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
 
 	def Draw( self, dc: wx.PaintDC ):
@@ -384,13 +360,13 @@ class CanvasImage(CanvasItem):
 		width, height = self._image.GetSize().Get()
 		self._bbox = RectBBox.FromPoints(
 			topLeft=self._pos,
-			topRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
-			centerTop=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
-			bottomLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
-			bottomRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
-			centerBottom=wx.Point2D( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
-			centerLeft=wx.Point2D( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
-			centerRight=wx.Point2D( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
+			topRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] ),
+			centerTop=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] ),
+			bottomLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + height ),
+			bottomRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + height ),
+			centerBottom=wx.Point( self._pos.Get()[ 0 ] + (width / 2), self._pos.Get()[ 1 ] + height ),
+			centerLeft=wx.Point( self._pos.Get()[ 0 ], self._pos.Get()[ 1 ] + (height / 2) ),
+			centerRight=wx.Point( self._pos.Get()[ 0 ] + width, self._pos.Get()[ 1 ] + (height / 2) )
 		)
 
 	def SetImage( self, img: wx.Image ):
@@ -413,16 +389,16 @@ class BBox(metaclass=ABCMeta):
 
 class RectBBox(BBox):
 
-	_topRight: wx.Point2D
-	_topLeft: wx.Point2D
-	_bottomRight: wx.Point2D
-	_bottomLeft: wx.Point2D
-	_top: wx.Point2D
-	_bottom: wx.Point2D
-	_right: wx.Point2D
-	_left: wx.Point2D
+	_topRight: wx.Point
+	_topLeft: wx.Point
+	_bottomRight: wx.Point
+	_bottomLeft: wx.Point
+	_top: wx.Point
+	_bottom: wx.Point
+	_right: wx.Point
+	_left: wx.Point
 
-	def __init__(self, points: Tuple[wx.Point2D]):
+	def __init__(self, points: Tuple[wx.Point]):
 		self._topRight = points[ 0 ]
 		self._topLeft = points[ 1 ]
 		self._bottomRight = points[ 2 ]
@@ -434,14 +410,14 @@ class RectBBox(BBox):
 
 	@staticmethod
 	def FromPoints(
-		topRight: wx.Point2D,
-		topLeft: wx.Point2D,
-		bottomRight: wx.Point2D,
-		bottomLeft: wx.Point2D,
-		centerTop: wx.Point2D,
-		centerBottom: wx.Point2D,
-		centerRight: wx.Point2D,
-		centerLeft: wx.Point2D
+		topRight: wx.Point,
+		topLeft: wx.Point,
+		bottomRight: wx.Point,
+		bottomLeft: wx.Point,
+		centerTop: wx.Point,
+		centerBottom: wx.Point,
+		centerRight: wx.Point,
+		centerLeft: wx.Point
 	):
 		return RectBBox(
 			tuple(
@@ -476,7 +452,7 @@ class RectBBox(BBox):
 	def GetCenter( self ):
 		return wx.Point2D(self._left.Get()[1], self._top.Get()[0])
 
-	def GetVerticies( self ) -> Tuple[ wx.Point2D, wx.Point2D, wx.Point2D, wx.Point2D ]:
+	def GetVerticies( self ) -> Tuple[ wx.Point, wx.Point, wx.Point, wx.Point ]:
 		return self._topLeft, self._topRight, self._bottomLeft, self._bottomRight
 
 	def IsInside( self, pos: Union[wx.Point, wx.Point2D] ) -> bool:
