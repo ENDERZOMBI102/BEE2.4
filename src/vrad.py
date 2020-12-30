@@ -15,13 +15,13 @@ from zipfile import ZipFile
 from typing import List, Set
 
 import srctools.run
-from srctools import Property
+from srctools import Property, FGD
 from srctools.bsp import BSP, BSP_LUMPS
 from srctools.filesys import (
     RawFileSystem, VPKFileSystem, ZipFileSystem,
     FileSystem,
 )
-from srctools.packlist import PackList, load_fgd
+from srctools.packlist import PackList
 from srctools.game import find_gameinfo
 from srctools.bsp_transform import run_transformations
 
@@ -200,10 +200,10 @@ def main(argv: List[str]) -> None:
 
     zip_data = BytesIO()
     zip_data.write(bsp_file.get_lump(BSP_LUMPS.PAKFILE))
-    zipfile = ZipFile(zip_data, mode='a')
+    zipfile = ZipFile(zip_data)
 
     # Mount the existing packfile, so the cubemap files are recognised.
-    fsys.systems.append((ZipFileSystem('', zipfile), ''))
+    fsys.add_sys(ZipFileSystem('<BSP pakfile>', zipfile))
 
     fsys.open_ref()
 
@@ -214,7 +214,7 @@ def main(argv: List[str]) -> None:
         LOGGER.debug('- {}: {!r}', child_sys[1], child_sys[0])
 
     LOGGER.info('Reading our FGD files...')
-    fgd = load_fgd()
+    fgd = FGD.engine_dbase()
 
     packlist = PackList(fsys)
     packlist.load_soundscript_manifest(
@@ -249,11 +249,7 @@ def main(argv: List[str]) -> None:
     packlist.eval_dependencies()
     LOGGER.info('Done!')
 
-    if is_peti:
-        packlist.write_manifest()
-    else:
-        # Write with the map name, so it loads directly.
-        packlist.write_manifest(os.path.basename(path)[:-4])
+    packlist.write_manifest()
 
     # We need to disallow Valve folders.
     pack_whitelist = set()  # type: Set[FileSystem]

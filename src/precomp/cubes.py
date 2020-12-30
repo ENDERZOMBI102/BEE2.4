@@ -3,9 +3,13 @@ import io
 import itertools
 from contextlib import suppress
 from collections import namedtuple
+from weakref import WeakKeyDictionary
 
 from enum import Enum
-from typing import Dict, Optional, List, Union, Tuple, Set, FrozenSet, Iterable
+from typing import (
+    Optional, Union, Tuple, NamedTuple,
+    Dict, List, Set, FrozenSet, Iterable,
+)
 
 from precomp import brushLoc, options, packing, conditions
 from precomp.conditions import meta_cond, make_result, make_flag, RES_EXHAUSTED
@@ -29,7 +33,8 @@ DROPPER_TYPES = {}  # type: Dict[str, DropperType]
 ADDON_TYPES = {}  # type: Dict[str, CubeAddon]
 
 # All the cubes/droppers
-PAIRS = []  # type: List[CubePair]
+PAIRS: List['CubePair'] = []
+INST_TO_PAIR: Dict[Entity, 'CubePair'] = WeakKeyDictionary()
 
 # Distance from the floor to the bottom of dropperless cubes.
 # That's needed for light bridges and things like that.
@@ -162,25 +167,67 @@ class CubePaintType(Enum):
     BOUNCE = 0
     SPEED = 2
 
-# The skin used for a cube type and gel.
-CUBE_SKINS = {
-    (None, CubeEntType.norm): '0',
-    (None, CubeEntType.comp): '1',
-    (None, CubeEntType.reflect): '0',
-    (None, CubeEntType.sphere): '0',
-    (None, CubeEntType.antique): '0',
 
-    (CubePaintType.BOUNCE, CubeEntType.norm): '6',
-    (CubePaintType.BOUNCE, CubeEntType.comp): '8',
-    (CubePaintType.BOUNCE, CubeEntType.reflect): '2',
-    (CubePaintType.BOUNCE, CubeEntType.sphere): '2',
-    (CubePaintType.BOUNCE, CubeEntType.antique): '1',
+class CubeSkins(NamedTuple):
+    """Specifies the various skins present for cubes.
 
-    (CubePaintType.SPEED, CubeEntType.norm): '7',
-    (CubePaintType.SPEED, CubeEntType.comp): '9',
-    (CubePaintType.SPEED, CubeEntType.reflect): '3',
-    (CubePaintType.SPEED, CubeEntType.sphere): '3',
-    (CubePaintType.SPEED, CubeEntType.antique): '2',
+    Rusty skins are only applicable if the map doesn't contain gels, since
+    all of the cube types have one or more bad gel skins. If None, there's
+    no rusty version.
+    For each, the first is the off skin, the second is the on skin.
+    """
+    clean: Tuple[int, int]
+    rusty: Optional[Tuple[int, int]]
+    bounce: Tuple[int, int]
+    speed: Tuple[int, int]
+
+    def spawn_skin(self, paint: Optional[CubePaintType]) -> int:
+        """Return the skin this paint would spawn with."""
+        if paint is None:
+            return self.clean[0]
+        elif paint is CubePaintType.BOUNCE:
+            return self.bounce[0]
+        elif paint is CubePaintType.SPEED:
+            return self.speed[0]
+        raise AssertionError(f"Unknown value: {paint}")
+
+
+# (paint, type and rusty) -> off, on skins.
+CUBE_SKINS: Dict[CubeEntType, CubeSkins] = {
+    CubeEntType.norm: CubeSkins(
+        clean=(0, 2),
+        rusty=(3, 5),
+        bounce=(6, 10),
+        speed=(7, 11),
+    ),
+    CubeEntType.comp: CubeSkins(
+        clean=(1, 4),
+        rusty=None,
+        # On-painted skins are actually normal!
+        # Not really noticeable though, so don't bother
+        # fixing.
+        bounce=(8, 10),
+        speed=(9, 11),
+    ),
+    CubeEntType.reflect: CubeSkins(
+        clean=(0, 0),
+        rusty=(1, 1),
+        bounce=(2, 2),
+        speed=(3, 3),
+        # 4-6 are for Schrodinger...
+    ),
+    CubeEntType.sphere: CubeSkins(
+        clean=(0, 1),
+        rusty=None,
+        bounce=(2, 2),
+        speed=(3, 3),
+    ),
+    CubeEntType.antique: CubeSkins(
+        clean=(0, 0),
+        rusty=None,
+        bounce=(1, 1),
+        speed=(2, 2),
+    ),
 }
 
 
@@ -325,6 +372,7 @@ class CubeType:
         has_name: str,
         cube_item_id: str,
         is_companion: bool,
+        try_rusty: bool,
         model: Optional[str],
         model_color: Optional[str],
         model_swap_meth: ModelSwapMeth,
@@ -364,6 +412,9 @@ class CubeType:
 
         # Conceptually - is it 'companion'-like -> voiceline
         self.is_companion = is_companion
+        # If true, use the original model and rusty skin type if no gels are
+        # present.
+        self.try_rusty = try_rusty
 
         # Distance from model origin to the 'floor'.
         self.base_offset = base_offset
@@ -442,6 +493,7 @@ class CubeType:
             conf['hasName'],
             cube_item_id,
             cube_type is CubeEntType.comp or conf.bool('isCompanion'),
+            conf.bool('tryRusty'),
             cust_model,
             cust_model_color,
             model_swap_meth,
@@ -530,13 +582,12 @@ class CubePair:
                 for out in cube_type.base_outputs[out_type]
             ]
 
-        # Write ourselves into the entities to allow retrieving this
-        # from them, and also via origin.
+        # Ensure we can look up the pair by origin and instance.
         if dropper is not None:
-            dropper.bee2_cube_data = self
+            INST_TO_PAIR[dropper] = self
             CUBE_POS[Vec.from_str(dropper['origin']).as_tuple()] = self
         if cube is not None:
-            cube.bee2_cube_data = self
+            INST_TO_PAIR[cube] = self
             CUBE_POS[Vec.from_str(cube['origin']).as_tuple()] = self
 
         # Cache of comp_kv_setters adding outputs to dropper ents.
@@ -552,6 +603,20 @@ class CubePair:
             drop_id = '"{}"'.format(self.drop_type.id)
         return '<CubePair {} -> "{}": {!r} -> {!r}, {!s}>'.format(
             drop_id, self.cube_type.id, drop, cube, self.tint,
+        )
+
+    def use_rusty_version(self, has_gel: bool) -> bool:
+        """Check if we can can use the rusty version.
+
+        This is only allowed if it's one of Valve's cubes,
+        no color is used, and no gels are present.
+        In this case, we ignore the custom model.
+        """
+        return (
+            self.cube_type.try_rusty and
+            self.paint_type is None and
+            self.tint is None and
+            CUBE_SKINS[self.cube_type].rusty is not None
         )
 
     def get_kv_setter(self, name: str) -> Entity:
@@ -873,8 +938,8 @@ def flag_cube_type(inst: Entity, res: Property):
     * `<cube>`: The cube half of a pair.
     """
     try:
-        pair = inst.bee2_cube_data  # type: CubePair
-    except AttributeError:
+        pair = INST_TO_PAIR[inst]
+    except KeyError:
         # None checks for if the instance *isn't* a cube.
         return res.value.casefold() == '<none>'
 
@@ -913,8 +978,8 @@ def flag_dropper_color(inst: Entity, res: Property):
     which will have the tint copied into it.
     """
     try:
-        data = inst.bee2_cube_data  # type: CubePair
-    except AttributeError:
+        data = INST_TO_PAIR[inst]
+    except KeyError:
         return False
 
     if res.value:
@@ -932,8 +997,8 @@ def res_dropper_addon(inst: Entity, res: Property):
         raise ValueError('Invalid Cube Addon: {}'.format(res.value))
 
     try:
-        pair = inst.bee2_cube_data  # type: CubePair
-    except AttributeError:
+        pair = INST_TO_PAIR[inst]
+    except KeyError:
         LOGGER.warning('Cube Addon applied to non cube ("{}")', res.value)
         return
 
@@ -944,8 +1009,8 @@ def res_dropper_addon(inst: Entity, res: Property):
 def res_set_dropper_off(inst: Entity, res: Property) -> None:
     """Update the position cubes will be spawned at for a dropper."""
     try:
-        pair = inst.bee2_cube_data  # type: CubePair
-    except AttributeError:
+        pair = INST_TO_PAIR[inst]
+    except KeyError:
         LOGGER.warning('SetDropperOffset applied to non cube ("{}")', res.value)
     else:
         pair.spawn_offset = Vec.from_str(
@@ -960,8 +1025,8 @@ def flag_cube_type(inst: Entity, res: Property):
     marked as a custom dropperless cube.
     """
     try:
-        pair = inst.bee2_cube_data  # type: CubePair
-    except AttributeError:
+        pair = INST_TO_PAIR[inst]
+    except KeyError:
         LOGGER.warning('Attempting to set cube type on non cube ("{}")', inst['targetname'])
         return
 
@@ -1278,11 +1343,11 @@ def link_cubes(vmf: VMF):
             pair.cube_type.in_map = True
 
         if pair.paint_type is CubePaintType.BOUNCE:
-            voice_attr['BounceGel'] = voice_attr['BlueGel'] = True
-            voice_attr['Gel'] = True
+            voice_attr['bouncegel'] = voice_attr['BlueGel'] = True
+            voice_attr['gel'] = True
         elif pair.paint_type is CubePaintType.SPEED:
-            voice_attr['SpeedGel'] = voice_attr['OrangeGel'] = True
-            voice_attr['Gel'] = True
+            voice_attr['speedgel'] = voice_attr['OrangeGel'] = True
+            voice_attr['gel'] = True
 
         has_name = pair.cube_type.has_name
         voice_attr['cube' + has_name] = True
@@ -1361,6 +1426,8 @@ def make_cube(
     pair: CubePair,
     floor_pos: Vec,
     in_dropper: bool,
+    bounce_in_map: bool,
+    speed_in_map: bool,
 ) -> Tuple[bool, Entity]:
     """Place a cube on the specified floor location.
 
@@ -1546,10 +1613,26 @@ def make_cube(
         ent['AllowSilentDissolve'] = 1
     else:
         # A prop_weighted_cube
-
         ent['NewSkins'] = '1'
-        ent['SkinType'] = '0'
-        ent['Skin'] = CUBE_SKINS[spawn_paint, pair.cube_type.type]
+
+        skin = CUBE_SKINS[pair.cube_type.type]
+        skinset: Set[int] = set()
+
+        if pair.use_rusty_version(bounce_in_map or speed_in_map):
+            ent['SkinType'] = '1'
+            ent['Skin'] = skin.rusty[0]
+            skinset.update(skin.rusty)
+            cust_model = None
+        else:
+            ent['SkinType'] = '0'
+            ent['Skin'] = skin.spawn_skin(spawn_paint)
+            skinset.update(skin.clean)
+            if bounce_in_map or spawn_paint is CubePaintType.BOUNCE:
+                skinset.update(skin.bounce)
+            if speed_in_map or spawn_paint is CubePaintType.BOUNCE:
+                skinset.update(skin.speed)
+
+        ent['skinset'] = ' '.join(map(str, sorted(skinset)))
         ent['angles'] = Vec(0, yaw, 0)
         # If in droppers, disable portal funnelling until it falls out.
         ent['AllowFunnel'] = not in_dropper
@@ -1561,6 +1644,8 @@ def make_cube(
             
             if cube_type.model_swap_meth is ModelSwapMeth.CUBE_TYPE:
                 ent['CubeType'] = CUBE_ID_CUSTOM_MODEL_HACK
+            elif cube_type.model_swap_meth is ModelSwapMeth.SETMODEL:
+                precache_model(vmf, cust_model, skinset)
 
             if isinstance(pack, list):
                 packing.pack_files(vmf, *pack)
@@ -1593,6 +1678,10 @@ def make_cube(
 @meta_cond(priority=750, only_once=True)
 def generate_cubes(vmf: VMF):
     """After other conditions are run, generate cubes."""
+    from vbsp import settings
+    voice_attr = settings['has_attr']  # type: Dict[str, bool]
+    bounce_in_map = voice_attr['bouncegel']
+    speed_in_map = voice_attr['speedgel']
 
     # point_template for spawning dropperless cubes.
     # We can fit 16 in each, start with the count = 16 so
@@ -1601,12 +1690,15 @@ def generate_cubes(vmf: VMF):
     dropperless_temp_count = 16
 
     for pair in PAIRS:
-        # Don't include the cube entity.
+        # Don't include the original cube instance.
         if pair.cube:
             pair.cube.remove()
 
-        if pair.cube_type.model_swap_meth is ModelSwapMeth.SETMODEL:
-            # Add the custom model logic.
+        # Add the custom model logic. But skip if we use the rusty version.
+        # That overrides it to be using the normal model.
+        if (pair.cube_type.model_swap_meth is ModelSwapMeth.SETMODEL
+            and not pair.use_rusty_version(bounce_in_map or speed_in_map)
+        ):
             cust_model = (
                 pair.cube_type.model_color
                 if pair.tint is not None else
@@ -1614,8 +1706,7 @@ def generate_cubes(vmf: VMF):
             )
             if cust_model:
                 # Fire an on-spawn output that swaps the model,
-                # then resets the skin.
-
+                # then resets the skin to the right one.
                 # If we have a bounce cube painter, it needs to be the normal skin.
                 if (
                     pair.paint_type is CubePaintType.BOUNCE and
@@ -1630,10 +1721,9 @@ def generate_cubes(vmf: VMF):
                     'self.SetModel(`{}`); '
                     'self.__KeyValueFromInt(`skin`, {});'.format(
                         cust_model,
-                        CUBE_SKINS[spawn_paint, pair.cube_type.type],
+                        CUBE_SKINS[pair.cube_type.type].spawn_skin(spawn_paint),
                     ),
                 ))
-                precache_model(vmf, cust_model)
 
         drop_cube = cube = should_respawn = None
 
@@ -1666,7 +1756,7 @@ def generate_cubes(vmf: VMF):
             assert pair.drop_type is not None
             pos = Vec.from_str(pair.dropper['origin'])
             pos += pair.spawn_offset.copy().rotate_by_str(pair.dropper['angles'])
-            has_addon, drop_cube = make_cube(vmf, pair, pos, True)
+            has_addon, drop_cube = make_cube(vmf, pair, pos, True, bounce_in_map, speed_in_map)
             cubes.append(drop_cube)
 
             # We can't refer to the dropped cube directly because of the template name
@@ -1770,7 +1860,7 @@ def generate_cubes(vmf: VMF):
         if pair.cube:
             pos = Vec.from_str(pair.cube['origin'])
             pos += Vec(z=DROPPERLESS_OFFSET).rotate_by_str(pair.cube['angles'])
-            has_addon, cube = make_cube(vmf, pair, pos, False)
+            has_addon, cube = make_cube(vmf, pair, pos, False, bounce_in_map, speed_in_map)
             cubes.append(cube)
             cube_name = cube['targetname'] = conditions.local_name(pair.cube, 'box')
 
