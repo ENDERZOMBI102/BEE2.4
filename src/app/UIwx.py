@@ -1,4 +1,5 @@
 from typing import Union, Callable, Dict
+import webbrowser as wb
 
 import wx
 import srctools.logger
@@ -14,7 +15,7 @@ if __name__ == '__main__':
 
 import BEE2_config
 from BEE2_config import GEN_OPTS
-from app import sound, gameMan, backup, packageMan, optionWindow
+from app import sound, gameMan, backup, packageMan, optionWindow, helpMenu
 from loadScreen import main_loader
 
 if __name__ == '':
@@ -77,7 +78,24 @@ class Root(wx.Frame):
 		self.menu_items['Delete Palette'] = pal_menu.Append( newMenuIndex(), _('Delete Palette') )
 		self.menu_items['Fill Palette'] = pal_menu.Append( newMenuIndex(), _('Fill Palette') )
 		pal_menu.AppendSeparator()
+		self.menu_items['Save Settings in Palettes'] = pal_menu.AppendCheckItem( newMenuIndex(), _('Save Settings in Palettes') )
+		pal_menu.AppendSeparator()
+		self.menu_items['Save Palette'] = pal_menu.Append( newMenuIndex(), f'{_("Save Palette")}\t{utils.KEY_ACCEL["KEY_SAVE"]}' )
+		self.menu_items['Save Palette As...'] = pal_menu.Append( newMenuIndex(), f'{_("Save Palette As...")}\t{utils.KEY_ACCEL["KEY_SAVE_AS"]}' )
+		pal_menu.AppendSeparator()
+		bar.Append(menu=pal_menu, title=_('Palette') )
 
+		# help menu
+		self.menus['Help'] = help_menu = wx.Menu()
+		for res in helpMenu.WEB_RESOURCES:
+			if res is helpMenu.SEPERATOR:
+				help_menu.AppendSeparator()
+			else:
+				self.menu_items[] help_menu.Append()
+
+		bar.Append( menu=help_menu, title=_( 'Help' ) )
+
+		# set the bar
 		self.SetMenuBar(bar)
 
 		self.Bind(wx.EVT_CLOSE, self.QuitApplication)
@@ -116,6 +134,15 @@ class Root(wx.Frame):
 
 
 gameMan.quit_application = lambda: wx.GetTopLevelWindows()[0].QuitApplication()
+
+
+def openUrl(url: str):
+	"""
+	opens an url with the default browser
+	:param url: the url to open
+	"""
+	LOGGER.info(f'opening "{url}" with default browser')
+	wb.open(url)
 
 
 if __name__ == '__main__':

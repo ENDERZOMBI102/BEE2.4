@@ -40,6 +40,7 @@ BEE2_REPO = 'https://github.com/BEEmod/BEE2.4/'
 BEE2_ITEMS_REPO = 'https://github.com/BEEmod/BEE2-items/'
 DISCORD_SERVER = 'https://discord.gg/EvC8Fku'
 MUSIC_CHANGER = 'https://beemmc.boards.net/'
+MANIPULATOR = 'https://gihub.com/ENDERZOMBI102/BEE-manipulator'
 
 
 def steam_url(name):
@@ -64,6 +65,7 @@ WEB_RESOURCES = [
 	# i18n: The chat program.
 	Res(_('Discord Server...'), DISCORD_SERVER, ResIcon.DISCORD),
 	Res(_("aerond's Music Changer..."), MUSIC_CHANGER, ResIcon.MUSIC_CHANGER),
+	Res( _( "ENDERZOMBI102's BEE Manipulator..." ), MANIPULATOR, ResIcon.MANIPULATOR ),
 	SEPERATOR,
 	Res(_('Application Repository...'), BEE2_REPO, ResIcon.GITHUB),
 	Res(_('Items Repository...'), BEE2_ITEMS_REPO, ResIcon.GITHUB),
