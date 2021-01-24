@@ -17,6 +17,8 @@ import math
 import re
 import io
 
+import wx
+
 from BEE2_config import ConfigFile, GEN_OPTS
 from srctools import (
     Vec, VPK,
@@ -1542,31 +1544,46 @@ def remove_game(e=None):
         add_menu_opts(game_menu)
 
 
-def add_menu_opts(menu: Menu, callback=None):
+game_radio_start_index = 0
+
+
+def add_menu_opts(menu: wx.Menu, callback=None):
     """Add the various games to the menu."""
-    global selectedGame_radio, setgame_callback
+    global selectedGame_radio, setgame_callback, game_radio_start_index
     if callback is not None:
         setgame_callback = callback
 
-    for ind in range(menu.index(END), 0, -1):
+    for ind in range(menu.GetMenuItemCount(), 0, -1):
         # Delete all the old radiobutton
         # Iterate backward to ensure indexes stay the same.
-        if menu.type(ind) == RADIOBUTTON:
-            menu.delete(ind)
+        if menu.GetMenuItems()[ind].GetKind() == wx.ITEM_RADIO:
+            menu.RemoveItem( menu.GetMenuItems()[ ind ] )
+
+    import app.UIwx
+
+    game_radio_start_index = app.UIwx.idindex + 1
 
     for val, game in enumerate(all_games):
-        menu.add_radiobutton(
-            label=game.name,
-            variable=selectedGame_radio,
-            value=val,
-            command=setGame,
+        app.UIwx.idindex = app.UIwx.idindex + 1
+        item = menu.AppendRadioItem(
+            id=app.UIwx.idindex,
+            item=game.name,
         )
+        menu.Bind(wx.EVT_MENU, setGame, item)
     setGame()
 
 
-def setGame():
+def setGame(evt: wx.MenuEvent = None):
     global selected_game
-    selected_game = all_games[selectedGame_radio.get()]
+    if evt is None:
+        selected_game = all_games[selectedGame_radio.get()]
+    else:
+        item: wx.MenuItem = evt.GetMenu().FindItemById( evt.GetMenuId() )
+
+        for index in range( game_radio_start_index, evt.GetMenu().GetMenuItemCount() ):
+            if wx.Menu.FindItemByPosition(index).IsChecked():
+                selected_game = all_games[ index - game_radio_start_index ]
+                break
     setgame_callback(selected_game)
 
 
@@ -1578,6 +1595,7 @@ def set_game_by_name(name):
             selectedGame_radio.set(all_games.index(game))
             setgame_callback(selected_game)
             break
+
 
 if __name__ == '__main__':
     Button(TK_ROOT, text='Add', command=add_game).grid(row=0, column=0)

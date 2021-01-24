@@ -253,6 +253,9 @@ class SplashScreen(wx.Frame):
 			)
 
 
+run_screen = lambda: print('')
+
+
 if __name__ == '__main__':
 	app = wx.App()
 	frame = SplashScreen()

@@ -56,6 +56,7 @@ def tk_error(
     TK_ROOT.quit()
     sys.exit()
 
+
 TK_ROOT.report_callback_exception = tk_error
 
 

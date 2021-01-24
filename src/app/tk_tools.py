@@ -2,6 +2,7 @@
 General code used for tkinter portions.
 
 """
+from pathlib import Path
 from typing import Union, Callable, Optional
 
 from tkinter import ttk
@@ -29,7 +30,7 @@ import utils
 
 # Set icons for the application.
 
-ICO_PATH = str(utils.install_path('BEE2.ico'))
+ICO_PATH = str(utils.install_path('BEE2.ico') )
 
 if utils.WIN:
     # Ensure everything has our icon (including dialogs)

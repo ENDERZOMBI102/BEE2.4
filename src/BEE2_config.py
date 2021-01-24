@@ -31,7 +31,7 @@ def get_curr_settings() -> Property:
     props = Property('', [])
 
     for opt_id, opt_func in option_handler.items():
-        opt_prop = opt_func()  # type: Property
+        opt_prop: Property = opt_func()
         opt_prop.name = opt_id.title()
         props.append(opt_prop)
 

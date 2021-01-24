@@ -685,5 +685,6 @@ def _test() -> None:
     TK_ROOT.deiconify()
     TK_ROOT.mainloop()
 
+
 if __name__ == '__main__':
     _test()

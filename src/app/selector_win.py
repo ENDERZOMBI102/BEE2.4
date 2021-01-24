@@ -13,6 +13,8 @@ from operator import itemgetter
 from enum import Enum
 import functools
 import math
+import wx.media
+import wx
 
 from app.richTextBox import tkRichText
 from app.tooltip import add_tooltip, set_tooltip
@@ -125,6 +127,7 @@ def {l_name}(cls, id: str, desc='', default=None):
             l_name=_member_name.lower()
         ), globals(), locals())
     del _member_name
+
 
 SelitemData = namedtuple(
     'SelitemData',
@@ -644,7 +647,7 @@ class selWin:
                 start_callback=set_samp_stop,
                 system=sound_sys,
             )
-            samp_button['command'] = self.sampler.play_sample
+            samp_button['command'] = self.sampler
             utils.bind_leftclick(self.prop_icon, self.sampler.play_sample)
             samp_button.state(('disabled',))
         else:
@@ -1025,7 +1028,7 @@ class selWin:
         # is so it doesn't snap open/closed while finding files.
         if self.sampler is not None and self.sampler_held_open is False:
             self.sampler_held_open = True
-            self.sampler.system.open_ref()
+            # self.sampler.system.open_ref()
 
         utils.center_win(self.win, parent=self.parent)
 
@@ -1450,6 +1453,7 @@ class selWin:
             )
         self.set_disp()  # Update the textbox if needed
         self.flow_items()  # Refresh
+
 
 if __name__ == '__main__':  # test the window if directly executing this file
     lbl = ttk.Label(TK_ROOT, text="I am a demo window.")

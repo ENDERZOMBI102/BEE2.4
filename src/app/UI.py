@@ -41,6 +41,10 @@ from app import (
 
 from typing import List, Dict, Tuple
 
+if __name__ == '':
+    def _(x):
+        pass
+
 
 LOGGER = srctools.logger.get_logger(__name__)
 
@@ -100,7 +104,7 @@ class Item:
         'pak_name',
         'names',
         'url',
-        ]
+    ]
 
     def __init__(self, item):
         self.ver_list = sorted(item.versions.keys())
@@ -514,10 +518,10 @@ def load_packages(data):
 
     StyleVarPane.add_vars(data['StyleVar'], data['Style'])
 
-    sky_list   = []  # type: List[selWinItem]
-    voice_list = []  # type: List[selWinItem]
-    style_list = []  # type: List[selWinItem]
-    elev_list  = []  # type: List[selWinItem]
+    sky_list: List[selWinItem]    = []
+    voice_list: List[selWinItem]  = []
+    style_list : List[selWinItem] = []
+    elev_list: List[selWinItem]   = []
 
     # These don't need special-casing, and act the same.
     # The attrs are a map from selectorWin attributes, to the attribute on
