@@ -46,10 +46,10 @@ except ImportError:
 
 LOGGER = srctools.logger.get_logger(__name__)
 
-all_games = []  # type: List[Game]
-selected_game = None  # type: Game
+all_games: List['Game'] = []
+selected_game: 'Game' = None
 selectedGame_radio = IntVar(value=0)
-game_menu = None  # type: Menu
+game_menu: Menu = None
 
 # Translated text from basemodui.txt.
 TRANS_DATA = {}

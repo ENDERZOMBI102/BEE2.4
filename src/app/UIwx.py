@@ -1,4 +1,4 @@
-from typing import Union, Callable
+from typing import Union, Callable, Dict
 
 import wx
 import srctools.logger
@@ -24,7 +24,13 @@ if __name__ == '':
 LOGGER = srctools.logger.get_logger(__name__)
 
 item_opts = BEE2_config.ConfigFile( 'item_configs.cfg' )
-idindex: int = -1
+_menuIndex: int = 0
+
+
+def newMenuIndex() -> int:
+	global _menuIndex
+	_menuIndex += 1
+	return _menuIndex - 1
 
 
 class Root(wx.Frame):
@@ -35,7 +41,8 @@ class Root(wx.Frame):
 	windows = {}
 	frames = {}
 	UI = {}
-	menus = {}
+	menus: Dict[str, wx.Menu] = {}
+	menu_items: Dict[str, wx.MenuItem] = {}
 
 	def __init__(self):
 		super(Root, self).__init__(
@@ -47,19 +54,30 @@ class Root(wx.Frame):
 
 		# here the menu bar is made
 		bar = wx.MenuBar()
-		# all the menus
-		file_menu = self.menus['file'] = wx.Menu()
-		create_item( file_menu, 'Export', lambda: print(), utils.KEY_ACCEL[ "KEY_EXPORT" ] )
-		create_item( file_menu, 'Add Game', gameMan.add_game )
-		create_item( file_menu, 'Uninstall from Selected Game', gameMan.remove_game )
-		create_item( file_menu, 'Backup/Restore Puzzles...', backup.show_window )
-		create_item( file_menu, 'Manage Packages...', packageMan.show)
+		# construct the menu bar
+		# file menu
+		self.menus['file'] = file_menu = wx.Menu()
+		self.menu_items['Export'] = file_menu.Append(newMenuIndex(), f'{_("Export")}\t{utils.KEY_ACCEL[ "KEY_EXPORT" ]}' )
+		self.menu_items['Add Game'] = file_menu.Append(newMenuIndex(), _('Add Game') )
+		self.menu_items['Uninstall from Selected Game'] = file_menu.Append(newMenuIndex(), _('Uninstall from Selected Game') )
+		self.menu_items['Backup/Restore Puzzles...'] = file_menu.Append(newMenuIndex(), _('Backup/Restore Puzzles...') )
+		self.menu_items['Manage Packages...'] = file_menu.Append(newMenuIndex(), _('Manage Packages...') )
 		file_menu.AppendSeparator()
-		create_item( file_menu, 'Options', optionWindow.show)
-		if not utils.MAC:
-			create_item( file_menu, 'Quit', self.QuitApplication)
-
+		self.menu_items['Options'] = file_menu.Append(newMenuIndex(), _('Options') )
+		self.menu_items['Quit'] = file_menu.Append( newMenuIndex(), _('Quit') )
+		file_menu.AppendSeparator()
+		for game in gameMan.all_games:
+			self.menu_items[game.name] = file_menu.AppendRadioItem(newMenuIndex(), game.name)
+			self.Bind(wx.EVT_MENU, self.SetGame, self.menu_items[game.name])
 		bar.Append(menu=file_menu, title=_('File') )
+
+		# palette menu
+		self.menus['pal'] = pal_menu = wx.Menu()
+		self.menu_items['Clear'] = pal_menu.Append( newMenuIndex(), _('Clear') )
+		self.menu_items['Delete Palette'] = pal_menu.Append( newMenuIndex(), _('Delete Palette') )
+		self.menu_items['Fill Palette'] = pal_menu.Append( newMenuIndex(), _('Fill Palette') )
+		pal_menu.AppendSeparator()
+
 		self.SetMenuBar(bar)
 
 		self.Bind(wx.EVT_CLOSE, self.QuitApplication)
@@ -91,17 +109,13 @@ class Root(wx.Frame):
 
 		# optionWindow.load()
 
+	# menu items events
+	def SetGame( self, evt: wx.MenuEvent ):
+		# gameMan.selected_game =
+		pass
+
 
 gameMan.quit_application = lambda: wx.GetTopLevelWindows()[0].QuitApplication()
-
-
-def create_item( menu: wx.Menu, label: str, command: Callable[ [ wx.MenuEvent ], None ], accelerator: str = None ) -> wx.MenuItem:
-	global idindex
-	idindex += 1
-	accelerator = f'\t{accelerator}' if accelerator is not None else ''
-	item: wx.MenuItem = menu.Append( id=idindex, item=_(label) + accelerator )
-	menu.Bind(wx.EVT_MENU, command)
-	return item
 
 
 if __name__ == '__main__':
