@@ -76,3 +76,5 @@ reports/
 # wxGlade - backups, generated Python
 wxGlade/*.bak
 wxGlade/*.py
+
+run
