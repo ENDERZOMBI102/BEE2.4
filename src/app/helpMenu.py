@@ -1,17 +1,17 @@
 """Help menu and associated dialogs."""
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, Dict
 
 from tkinter import ttk
 import tkinter as tk
 import webbrowser
-import functools
 
 import wx
+import wx.html
 from srctools.logger import get_logger
 
 from app.richTextBox import tkRichText
-from app import tkMarkdown, tk_tools, sound, img, TK_ROOT, icon
+from app import tkMarkdown, tk_tools, sound, img, icon
 import utils
 
 # For version info
@@ -248,42 +248,45 @@ class Dialog( tk.Toplevel ):
 		utils.center_win( self, TK_ROOT )
 
 
-def make_help_menu( parent: tk.Menu ):
+def make_help_menu( parent: wx.MenuBar ):
 	"""Create the application 'Help' menu."""
 	# Using this name displays this correctly in OS X
-	help = tk.Menu( parent, name='help' )
-
-	parent.add_cascade( menu=help, label=_( 'Help' ) )
+	help = wx.Menu( 'help' )
 
 	invis_icon = img.invis_square( 16 )
-	icons = {
-		icon: img.png( 'icons/' + icon.value, resize_to=16, error=invis_icon )
+	icons: Dict[ResIcon, wx.Bitmap] = {
+		icon: img.png_wx( 'icons/' + icon.value, resize_to=16, error=invis_icon )
 		for icon in ResIcon
 		if icon is not ResIcon.NONE
 	}
 	icons[ ResIcon.NONE ] = invis_icon
 
-	credits = Dialog(
-		title=_( 'BEE2 Credits' ),
-		text=CREDITS_TEXT,
-	)
-
 	for res in WEB_RESOURCES:
 		if res is SEPERATOR:
-			help.add_separator()
+			help.AppendSeparator()
 		else:
-			help.add_command(
-				label=res.name,
-				command=functools.partial( webbrowser.open, res.url ),
-				compound='left',
-				image=icons[ res.icon ],
+			item: wx.MenuItem = help.Append(
+				id=None,  # TODO: add a function to get an available menu index
+				item=res.name,
 			)
+			item.SetBitmap( icons[ res.icon ] )
+			help.Bind(wx.EVT_MENU, openHandler, item)
 
-	help.add_separator()
-	help.add_command(
-		label=_( 'Credits...' ),
-		command=credits.show,
+	help.AppendSeparator()
+	help.Append(
+		id=None,
+		item=_( 'Credits...' )
 	)
+
+	parent.Append( menu=help, title=_( 'Help' ) )
+
+
+def openHandler(evt: wx.MenuEvent):
+	item: wx.MenuItem = evt.GetMenu().FindItemById( evt.GetId() )
+	item.GetItemLabel()
+	for res in WEB_RESOURCES:
+		if res.name == item.GetItemLabel():
+			webbrowser.open(res.url)
 
 
 class aboutWindow( wx.Frame ):
@@ -291,8 +294,11 @@ class aboutWindow( wx.Frame ):
 	instance: 'aboutWindow' = None
 
 	def __init__( self ):
-		super().__init__( wx.GetApp().GetTopWindow(), title='About BEE Manipulator',
-						  style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER )
+		super().__init__(
+			wx.GetApp().GetTopWindow(),
+			title='BEE2 Credits',
+			style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER
+		)
 		# self.SetSize( wx.Size(300, 260) )
 		self.SetIcon( icon )
 		self.box = wx.html.HtmlWindow( self )
