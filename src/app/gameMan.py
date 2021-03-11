@@ -851,11 +851,11 @@ class Game:
 						export_screen.reset()
 						messagebox.showerror(
 							title=_( 'BEE2 - Export Failed!' ),
-							message=_( 'Copying compiler file {file} failed. '
-									   'Ensure {game} is not running.' ).format(
-								file=comp_file,
-								game=self.name,
-							),
+							message=_( 'Copying compiler file {file} failed. Ensure {game} is not running.' )
+								.format(
+									file=comp_file,
+									game=self.name,
+								),
 							master=TK_ROOT,
 						)
 						return False, vpk_success
