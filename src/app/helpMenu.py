@@ -7,9 +7,11 @@ import tkinter as tk
 import webbrowser
 import functools
 
+import wx
+from srctools.logger import get_logger
 
 from app.richTextBox import tkRichText
-from app import tkMarkdown, tk_tools, sound, img, TK_ROOT
+from app import tkMarkdown, tk_tools, sound, img, TK_ROOT, icon
 import utils
 
 # For version info
@@ -18,20 +20,21 @@ import platform
 import mistletoe
 
 
-class ResIcon(Enum):
-    """Icons to show on the menu list."""
-    NONE = ''
-    GITHUB = 'menu_github'
-    BEE2 = 'menu_bee2'
-    APERTURE = 'ap_black'
-    BUGS = 'menu_github'
-    DISCORD = 'menu_discord'
-    MUSIC_CHANGER = 'menu_music_changer'
+class ResIcon( Enum ):
+	"""Icons to show on the menu list."""
+	NONE = ''
+	GITHUB = 'menu_github'
+	BEE2 = 'menu_bee2'
+	APERTURE = 'ap_black'
+	BUGS = 'menu_github'
+	DISCORD = 'menu_discord'
+	MUSIC_CHANGER = 'menu_music_changer'
 
-    PORTAL2 = 'menu_p2'
-    TAG = 'menu_tag'
-    TWTM = 'menu_twtm'
-    MEL = 'menu_mel'
+	PORTAL2 = 'menu_p2'
+	TAG = 'menu_tag'
+	TWTM = 'menu_twtm'
+	MEL = 'menu_mel'
+
 
 SEPERATOR = object()
 
@@ -41,39 +44,39 @@ DISCORD_SERVER = 'https://discord.gg/EvC8Fku'
 MUSIC_CHANGER = 'https://beemmc.boards.net/'
 
 
-def steam_url(name):
-    """Return the URL to open the given game in Steam."""
-    return 'steam://store/' + utils.STEAM_IDS[name]
+def steam_url( name ):
+	"""Return the URL to open the given game in Steam."""
+	return 'steam://store/' + utils.STEAM_IDS[ name ]
 
 
-WebResource = NamedTuple('WebResource', [
-    ('name', str),
-    ('url', str),
-    ('icon', ResIcon),
-])
+WebResource = NamedTuple( 'WebResource', [
+	('name', str),
+	('url', str),
+	('icon', ResIcon),
+] )
 Res = WebResource
 
 WEB_RESOURCES = [
-    Res(_('Wiki...'), BEE2_ITEMS_REPO + 'wiki/', ResIcon.BEE2),
-    Res(
-        _('Original Items...'),
-        'https://developer.valvesoftware.com/wiki/Category:Portal_2_Puzzle_Maker',
-        ResIcon.PORTAL2,
-    ),
-    # i18n: The chat program.
-    Res(_('Discord Server...'), DISCORD_SERVER, ResIcon.DISCORD),
-    Res(_("aerond's Music Changer..."), MUSIC_CHANGER, ResIcon.MUSIC_CHANGER),
-    SEPERATOR,
-    Res(_('Application Repository...'), BEE2_REPO, ResIcon.GITHUB),
-    Res(_('Items Repository...'), BEE2_ITEMS_REPO, ResIcon.GITHUB),
-    SEPERATOR,
-    Res(_('Submit Application Bugs...'), BEE2_REPO + 'issues/new', ResIcon.BUGS),
-    Res(_('Submit Item Bugs...'), BEE2_ITEMS_REPO + 'issues/new', ResIcon.BUGS),
-    SEPERATOR,
-    Res(_('Portal 2'), steam_url('PORTAL2'), ResIcon.PORTAL2),
-    Res(_('Aperture Tag'), steam_url('TAG'), ResIcon.TAG),
-    Res(_('Portal Stories: Mel'), steam_url('MEL'), ResIcon.MEL),
-    Res(_('Thinking With Time Machine'), steam_url('TWTM'), ResIcon.TWTM),
+	Res( _( 'Wiki...' ), BEE2_ITEMS_REPO + 'wiki/', ResIcon.BEE2 ),
+	Res(
+		_( 'Original Items...' ),
+		'https://developer.valvesoftware.com/wiki/Category:Portal_2_Puzzle_Maker',
+		ResIcon.PORTAL2,
+	),
+	# i18n: The chat program.
+	Res( _( 'Discord Server...' ), DISCORD_SERVER, ResIcon.DISCORD ),
+	Res( _( "aerond's Music Changer..." ), MUSIC_CHANGER, ResIcon.MUSIC_CHANGER ),
+	SEPERATOR,
+	Res( _( 'Application Repository...' ), BEE2_REPO, ResIcon.GITHUB ),
+	Res( _( 'Items Repository...' ), BEE2_ITEMS_REPO, ResIcon.GITHUB ),
+	SEPERATOR,
+	Res( _( 'Submit Application Bugs...' ), BEE2_REPO + 'issues/new', ResIcon.BUGS ),
+	Res( _( 'Submit Item Bugs...' ), BEE2_ITEMS_REPO + 'issues/new', ResIcon.BUGS ),
+	SEPERATOR,
+	Res( _( 'Portal 2' ), steam_url( 'PORTAL2' ), ResIcon.PORTAL2 ),
+	Res( _( 'Aperture Tag' ), steam_url( 'TAG' ), ResIcon.TAG ),
+	Res( _( 'Portal Stories: Mel' ), steam_url( 'MEL' ), ResIcon.MEL ),
+	Res( _( 'Thinking With Time Machine' ), steam_url( 'TWTM' ), ResIcon.TWTM ),
 ]
 del Res, steam_url
 
@@ -177,106 +180,143 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''.format(
-    # Inject the running Python version.
-    py_ver=platform.python_version(),
-    tk_ver=tk.TkVersion,
-    tcl_ver=tk.TclVersion,
-    ttk_ver=ttk.__version__,
-    pyglet_ver=sound.pyglet_version,
-    mstle_ver=mistletoe.__version__,
-    pil_ver=PIL.__version__,
-).replace('\n', '  \n')  # Add two spaces to keep line breaks
+	# Inject the running Python version.
+	py_ver=platform.python_version(),
+	tk_ver=tk.TkVersion,
+	tcl_ver=tk.TclVersion,
+	ttk_ver=ttk.__version__,
+	pyglet_ver=sound.pyglet_version,
+	mstle_ver=mistletoe.__version__,
+	pil_ver=PIL.__version__,
+).replace( '\n', '  \n' )  # Add two spaces to keep line breaks
 
 
-class Dialog(tk.Toplevel):
-    """Show a dialog with a message."""
-    def __init__(self, title: str, text: str):
-        super().__init__(TK_ROOT)
-        self.withdraw()
-        self.title(title)
-        self.transient(master=TK_ROOT)
-        self.resizable(width=True, height=True)
-        self.text = text
-        tk_tools.set_window_icon(self)
+class Dialog( tk.Toplevel ):
+	"""Show a dialog with a message."""
 
-        # Hide when the exit button is pressed, or Escape
-        # on the keyboard.
-        self.protocol("WM_DELETE_WINDOW", self.withdraw)
-        self.bind("<Escape>", self.withdraw)
+	def __init__( self, title: str, text: str ):
+		super().__init__( TK_ROOT )
+		self.withdraw()
+		self.title( title )
+		self.transient( master=TK_ROOT )
+		self.resizable( width=True, height=True )
+		self.text = text
+		tk_tools.set_window_icon( self )
 
-        frame = tk.Frame(self, background='white')
-        frame.grid(row=0, column=0, sticky='nsew')
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+		# Hide when the exit button is pressed, or Escape
+		# on the keyboard.
+		self.protocol( "WM_DELETE_WINDOW", self.withdraw )
+		self.bind( "<Escape>", self.withdraw )
 
-        self.textbox = tkRichText(frame, width=80, height=24)
-        self.textbox.configure(background='white', relief='flat')
-        self.textbox.grid(row=0, column=0, sticky='nsew')
-        frame.grid_columnconfigure(0, weight=1)
-        frame.grid_rowconfigure(0, weight=1)
+		frame = tk.Frame( self, background='white' )
+		frame.grid( row=0, column=0, sticky='nsew' )
+		self.grid_columnconfigure( 0, weight=1 )
+		self.grid_rowconfigure( 0, weight=1 )
 
-        scrollbox = tk_tools.HidingScroll(
-            frame,
-            orient='vertical',
-            command=self.textbox.yview,
-        )
-        scrollbox.grid(row=0, column=1, sticky='ns')
-        self.textbox['yscrollcommand'] = scrollbox.set
+		self.textbox = tkRichText( frame, width=80, height=24 )
+		self.textbox.configure( background='white', relief='flat' )
+		self.textbox.grid( row=0, column=0, sticky='nsew' )
+		frame.grid_columnconfigure( 0, weight=1 )
+		frame.grid_rowconfigure( 0, weight=1 )
 
-        ttk.Button(
-            frame,
-            text=_('Close'),
-            command=self.withdraw,
-        ).grid(
-            row=1, column=0,
-        )
+		scrollbox = tk_tools.HidingScroll(
+			frame,
+			orient='vertical',
+			command=self.textbox.yview,
+		)
+		scrollbox.grid( row=0, column=1, sticky='ns' )
+		self.textbox[ 'yscrollcommand' ] = scrollbox.set
 
-    def show(self, e=None):
-        # The first time we're shown, decode the text.
-        # That way we don't need to do it on startup.
-        if self.text is not None:
-            parsed_text = tkMarkdown.convert(self.text)
-            self.textbox.set_text(parsed_text)
-            self.text = None
+		ttk.Button(
+			frame,
+			text=_( 'Close' ),
+			command=self.withdraw,
+		).grid(
+			row=1, column=0,
+		)
 
-        self.deiconify()
-        self.update_idletasks()
-        utils.center_win(self, TK_ROOT)
+	def show( self, e=None ):
+		# The first time we're shown, decode the text.
+		# That way we don't need to do it on startup.
+		if self.text is not None:
+			parsed_text = tkMarkdown.convert( self.text )
+			self.textbox.set_text( parsed_text )
+			self.text = None
+
+		self.deiconify()
+		self.update_idletasks()
+		utils.center_win( self, TK_ROOT )
 
 
-def make_help_menu(parent: tk.Menu):
-    """Create the application 'Help' menu."""
-    # Using this name displays this correctly in OS X
-    help = tk.Menu(parent, name='help')
+def make_help_menu( parent: tk.Menu ):
+	"""Create the application 'Help' menu."""
+	# Using this name displays this correctly in OS X
+	help = tk.Menu( parent, name='help' )
 
-    parent.add_cascade(menu=help, label=_('Help'))
+	parent.add_cascade( menu=help, label=_( 'Help' ) )
 
-    invis_icon = img.invis_square(16)
-    icons = {
-        icon: img.png('icons/' + icon.value, resize_to=16, error=invis_icon)
-        for icon in ResIcon
-        if icon is not ResIcon.NONE
-    }
-    icons[ResIcon.NONE] = invis_icon
+	invis_icon = img.invis_square( 16 )
+	icons = {
+		icon: img.png( 'icons/' + icon.value, resize_to=16, error=invis_icon )
+		for icon in ResIcon
+		if icon is not ResIcon.NONE
+	}
+	icons[ ResIcon.NONE ] = invis_icon
 
-    credits = Dialog(
-        title=_('BEE2 Credits'),
-        text=CREDITS_TEXT,
-    )
+	credits = Dialog(
+		title=_( 'BEE2 Credits' ),
+		text=CREDITS_TEXT,
+	)
 
-    for res in WEB_RESOURCES:
-        if res is SEPERATOR:
-            help.add_separator()
-        else:
-            help.add_command(
-                label=res.name,
-                command=functools.partial(webbrowser.open, res.url),
-                compound='left',
-                image=icons[res.icon],
-            )
+	for res in WEB_RESOURCES:
+		if res is SEPERATOR:
+			help.add_separator()
+		else:
+			help.add_command(
+				label=res.name,
+				command=functools.partial( webbrowser.open, res.url ),
+				compound='left',
+				image=icons[ res.icon ],
+			)
 
-    help.add_separator()
-    help.add_command(
-        label=_('Credits...'),
-        command=credits.show,
-    )
+	help.add_separator()
+	help.add_command(
+		label=_( 'Credits...' ),
+		command=credits.show,
+	)
+
+
+class aboutWindow( wx.Frame ):
+	logger = get_logger()
+	instance: 'aboutWindow' = None
+
+	def __init__( self ):
+		super().__init__( wx.GetApp().GetTopWindow(), title='About BEE Manipulator',
+						  style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER )
+		# self.SetSize( wx.Size(300, 260) )
+		self.SetIcon( icon )
+		self.box = wx.html.HtmlWindow( self )
+
+		html = mistletoe.markdown( CREDITS_TEXT )
+
+		self.box.SetPage( html )
+		self.box.OnLinkClicked = self.linkHandler
+		self.Bind( wx.EVT_CLOSE, self.OnClose, self )
+		self.logger.debug( 'loaded html data! displaying..' )
+		self.CenterOnParent()
+		self.Raise()
+		self.Show()
+		aboutWindow.instance = self
+
+	@staticmethod
+	def linkHandler( link ):
+		webbrowser.open( link.GetHref() )
+
+	def OnClose( self, evt: wx.CloseEvent ):
+		self.Show( False )
+
+
+if __name__ == '__main__':
+	app = wx.App()
+	w = aboutWindow()
+	app.MainLoop()

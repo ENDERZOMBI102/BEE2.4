@@ -1,19 +1,18 @@
 """The package containg all UI code."""
 import tkinter as tk
-import wx
 import logging
 from types import TracebackType
 from typing import Type
-from utils import BEE_VERSION
 
+import wx
+
+import utils
+from utils import BEE_VERSION
+from . import BEE2
 
 # We must always have one Tk object, and it needs to be constructed
 # before most of TKinter will function. So doing it here does it first.
-TK_ROOT = tk.Tk()
-TK_ROOT.withdraw()  # Hide the window until everything is loaded.
-
-# Same with wxWidgets.
-WX_APP = wx.App()
+wx.GetApp().TK_ROOT.withdraw()  # Hide the window until everything is loaded.
 
 
 def run_main_loop() -> None:
@@ -21,8 +20,8 @@ def run_main_loop() -> None:
     global _main_loop_running
     _main_loop_running = True
     # Drive TK from WX's loop.
-    WX_APP.Bind(wx.EVT_UPDATE_UI, lambda e: TK_ROOT.update())
-    WX_APP.MainLoop()
+    wx.GetApp().Bind(wx.EVT_UPDATE_UI, lambda e: wx.GetApp().update())
+    wx.GetApp().MainLoop()
 
 
 _main_loop_running = False
@@ -59,6 +58,7 @@ def tk_error(
     # Quit ourselves manually. to prevent TK just freezing.
     TK_ROOT.quit()
     sys.exit()
+
 
 TK_ROOT.report_callback_exception = tk_error
 
@@ -151,4 +151,7 @@ class WXLogTarg(wx.Log):
             info.func.decode('utf8', 'ignore'),
         ))
 
+
 wx.Log.SetActiveTarget(WXLogTarg())
+
+icon: wx.Icon = wx.Icon( utils.install_path('BEE2.ico') )

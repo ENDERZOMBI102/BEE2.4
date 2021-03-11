@@ -1,12 +1,16 @@
 """Run the BEE2."""
+import wx
+import tkinter as tk
+
 # BEE2_config creates this config file to allow easy cross-module access
 from BEE2_config import GEN_OPTS
 
-from app import gameMan, paletteLoader, UI, music_conf, logWindow, img, TK_ROOT
+from app import gameMan, paletteLoader, UI, music_conf, logWindow, img
 import loadScreen
 import packages
 import utils
 import srctools.logger
+
 
 LOGGER = srctools.logger.get_logger('BEE2')
 
@@ -45,72 +49,84 @@ DEFAULT_SETTINGS = {
     },
 }
 
-GEN_OPTS.load()
-GEN_OPTS.set_defaults(DEFAULT_SETTINGS)
 
-LOGGER.debug('Starting loading screen...')
-loadScreen.main_loader.set_length('UI', 14)
-loadScreen.set_force_ontop(GEN_OPTS.get_bool('General', 'splash_stay_ontop'))
-loadScreen.show_main_loader(GEN_OPTS.get_bool('General', 'compact_splash'))
+class App(wx.App):
 
-# OS X starts behind other windows, fix that.
-if utils.MAC:
-    TK_ROOT.lift()
+    TK_ROOT = tk.Tk()
 
-logging_win = logWindow.LogWindow(
-    GEN_OPTS.get_bool('Debug', 'show_log_win'),
-    GEN_OPTS.get('Debug', 'window_log_level', fallback='INFO'),
-)
+    def OnPreInit(self):
+        GEN_OPTS.load()
+        GEN_OPTS.set_defaults( DEFAULT_SETTINGS )
 
-LOGGER.debug('Loading settings...')
+        LOGGER.debug( 'Starting loading screen...' )
+        loadScreen.main_loader.set_length( 'UI', 14 )
+        loadScreen.set_force_ontop( GEN_OPTS.get_bool( 'General', 'splash_stay_ontop' ) )
+        loadScreen.show_main_loader( GEN_OPTS.get_bool( 'General', 'compact_splash' ) )
 
-UI.load_settings()
+        # OS X starts behind other windows, fix that.
+        if utils.MAC:
+            self.TK_ROOT.lift()
 
-gameMan.load()
-gameMan.set_game_by_name(
-    GEN_OPTS.get_val('Last_Selected', 'Game', ''),
-    )
-gameMan.scan_music_locs()
+        logging_win = logWindow.LogWindow(
+            GEN_OPTS.get_bool( 'Debug', 'show_log_win' ),
+            GEN_OPTS.get( 'Debug', 'window_log_level', fallback='INFO' )
+        )
 
-LOGGER.info('Loading Packages...')
-pack_data, package_sys = packages.load_packages(
-    GEN_OPTS['Directories']['package'],
-    loader=loadScreen.main_loader,
-    log_item_fallbacks=GEN_OPTS.get_bool(
-        'Debug', 'log_item_fallbacks'),
-    log_missing_styles=GEN_OPTS.get_bool(
-        'Debug', 'log_missing_styles'),
-    log_missing_ent_count=GEN_OPTS.get_bool(
-        'Debug', 'log_missing_ent_count'),
-    log_incorrect_packfile=GEN_OPTS.get_bool(
-        'Debug', 'log_incorrect_packfile'),
-    has_tag_music=gameMan.MUSIC_TAG_LOC is not None,
-    has_mel_music=gameMan.MUSIC_MEL_VPK is not None,
-)
+    def OnInit(self):
+        LOGGER.debug( 'Loading settings...' )
 
-# Load filesystems into various modules
-music_conf.load_filesystems(package_sys)
-img.load_filesystems(package_sys)
-gameMan.load_filesystems(package_sys)
+        UI.load_settings()
 
-UI.load_packages(pack_data)
-LOGGER.info('Done!')
+        gameMan.load()
+        gameMan.set_game_by_name(
+            GEN_OPTS.get_val( 'Last_Selected', 'Game', '' ),
+        )
+        gameMan.scan_music_locs()
 
-LOGGER.info('Loading Palettes...')
-paletteLoader.load_palettes()
-LOGGER.info('Done!')
+        LOGGER.info( 'Loading Packages...' )
+        pack_data, package_sys = packages.load_packages(
+            GEN_OPTS[ 'Directories' ][ 'package' ] if not utils.DEV_MODE else './run/packages',
+            loader=loadScreen.main_loader,
+            log_item_fallbacks=GEN_OPTS.get_bool(
+                'Debug', 'log_item_fallbacks' ),
+            log_missing_styles=GEN_OPTS.get_bool(
+                'Debug', 'log_missing_styles' ),
+            log_missing_ent_count=GEN_OPTS.get_bool(
+                'Debug', 'log_missing_ent_count' ),
+            log_incorrect_packfile=GEN_OPTS.get_bool(
+                'Debug', 'log_incorrect_packfile' ),
+            has_tag_music=gameMan.MUSIC_TAG_LOC is not None,
+            has_mel_music=gameMan.MUSIC_MEL_VPK is not None,
+        )
 
-# Check games for Portal 2's basemodui.txt file, so we can translate items.
-LOGGER.info('Loading Item Translations...')
-for game in gameMan.all_games:
-    game.init_trans()
+        # Load filesystems into various modules
+        music_conf.load_filesystems( package_sys )
+        img.load_filesystems( package_sys )
+        gameMan.load_filesystems( package_sys )
 
-LOGGER.info('Initialising UI...')
-UI.init_windows()  # create all windows
-LOGGER.info('UI initialised!')
+        UI.load_packages( pack_data )
+        LOGGER.info( 'Done!' )
 
-loadScreen.main_loader.destroy()
-# Delay this until the loop has actually run.
-# Directly run TK_ROOT.lift() in TCL, instead
-# of building a callable.
-TK_ROOT.tk.call('after', 10, 'raise', TK_ROOT)
+        LOGGER.info( 'Loading Palettes...' )
+        paletteLoader.load_palettes()
+        LOGGER.info( 'Done!' )
+
+        # Check games for Portal 2's basemodui.txt file, so we can translate items.
+        LOGGER.info( 'Loading Item Translations...' )
+        for game in gameMan.all_games:
+            game.init_trans()
+
+        LOGGER.info( 'Initialising UI...' )
+        UI.init_windows()  # create all windows
+        LOGGER.info( 'UI initialised!' )
+
+        loadScreen.main_loader.destroy()
+        # Delay this until the loop has actually run.
+        # Directly run TK_ROOT.lift() in TCL, instead
+        # of building a callable.
+        self.TK_ROOT.tk.call( 'after', 10, 'raise', self.TK_ROOT )
+
+    def OnExit(self):
+        GEN_OPTS.save_check()
+
+App()

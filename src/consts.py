@@ -30,6 +30,9 @@ class MaterialGroupMeta(EnumMeta):
         orig_dict = type(super().__prepare__(cls, bases))
 
         class RepDict(orig_dict):
+
+            _cls_name = 'RepDict'
+
             def __setitem__(self, key, value):
                 if isinstance(value, str):
                     value = value.casefold()

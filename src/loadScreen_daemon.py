@@ -360,7 +360,7 @@ class SplashScreen(BaseLoadScreen):
         self.lrg_height = self.splash_bg.Height
 
         # To avoid flickering when rendering the bars, first render to a bitmap.
-        self.bars_dc = wx.MemoryDC()
+        self.bars_dc = wx.MemoryDC()  # ^ doesn't work
 
         # Keep track of what size we painted last, so we know if we need to force
         # repainting the background.

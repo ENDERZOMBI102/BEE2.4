@@ -10,7 +10,7 @@ from tkinter import filedialog, commondialog, simpledialog
 import tkinter as tk
 import os.path
 
-from app import TK_ROOT
+import wx
 
 try:
     # Python 3.6+
@@ -33,7 +33,7 @@ ICO_PATH = str(utils.install_path('BEE2.ico'))
 
 if utils.WIN:
     # Ensure everything has our icon (including dialogs)
-    TK_ROOT.wm_iconbitmap(default=ICO_PATH)
+    wx.GetApp().TK_ROOT.wm_iconbitmap(default=ICO_PATH)
 
     def set_window_icon(window: Union[tk.Toplevel, tk.Tk]):
         """Set the window icon."""
@@ -55,7 +55,7 @@ if utils.WIN:
 elif utils.MAC:
     def set_window_icon(window: Union[tk.Toplevel, tk.Tk]):
         """ Call OS-X's specific api for setting the window icon."""
-        TK_ROOT.tk.call(
+        wx.GetApp().TK_ROOT.tk.call(
             'tk::mac::iconBitmap',
             window,
             256,  # largest size in the .ico
@@ -64,7 +64,7 @@ elif utils.MAC:
             ICO_PATH,
         )
 
-    set_window_icon(TK_ROOT)
+    set_window_icon(app.TK_ROOT)
 
     LISTBOX_BG_SEL_COLOR = '#C2DDFF'
     LISTBOX_BG_COLOR = 'white'
@@ -101,7 +101,7 @@ class QueryShim(simpledialog._QueryString):
 def prompt(
     title: str, message: str,
     initialvalue: str='',
-    parent: tk.Misc= TK_ROOT,
+    parent: tk.Misc = wx.GetApp().TK_ROOT,
 ) -> Optional[str]:
     """Ask the user to enter a string."""
     from loadScreen import suppress_screens
@@ -111,7 +111,7 @@ def prompt(
         # Probably also if it's not visible. So swap back to the old style.
         # It's also only a problem on Windows.
         if Query is None or (utils.WIN and (
-            not _main_loop_running or not TK_ROOT.winfo_viewable()
+            not _main_loop_running or not wx.GetApp().TK_ROOT.winfo_viewable()
         )):
             query_cls = QueryShim
         else:
