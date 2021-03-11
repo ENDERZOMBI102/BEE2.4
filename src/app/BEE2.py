@@ -129,4 +129,5 @@ class App(wx.App):
     def OnExit(self):
         GEN_OPTS.save_check()
 
+
 App()

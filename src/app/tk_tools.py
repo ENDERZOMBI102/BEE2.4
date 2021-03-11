@@ -33,7 +33,7 @@ ICO_PATH = str(utils.install_path('BEE2.ico'))
 
 if utils.WIN:
     # Ensure everything has our icon (including dialogs)
-    wx.GetApp().TK_ROOT.wm_iconbitmap(default=ICO_PATH)
+    # wx.GetApp().TK_ROOT.wm_iconbitmap(default=ICO_PATH)
 
     def set_window_icon(window: Union[tk.Toplevel, tk.Tk]):
         """Set the window icon."""
@@ -101,11 +101,14 @@ class QueryShim(simpledialog._QueryString):
 def prompt(
     title: str, message: str,
     initialvalue: str='',
-    parent: tk.Misc = wx.GetApp().TK_ROOT,
+    parent: tk.Misc = None,
 ) -> Optional[str]:
     """Ask the user to enter a string."""
     from loadScreen import suppress_screens
     from app import _main_loop_running
+    if parent is None:
+        from BEE2 import App
+        parent = App.GetInstance()
     with suppress_screens():
         # If the main loop isn't running, this doesn't work correctly.
         # Probably also if it's not visible. So swap back to the old style.
