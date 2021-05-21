@@ -849,7 +849,7 @@ class Game:
 						# We might not have permissions, if the compiler is currently
 						# running.
 						export_screen.reset()
-						messagebox.showerror(
+						wx.Dialog(
 							title=_( 'BEE2 - Export Failed!' ),
 							message=_( 'Copying compiler file {file} failed. Ensure {game} is not running.' )
 								.format(
